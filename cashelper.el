@@ -6,17 +6,27 @@
 
 (defface hi-dim '((t :foreground "gray20" :background nil)) "dark gray")
 
-(defun cassandra-be-good-hook ()
+(defvar custcompile-hi-lock nil "zoot")
+(defun custcompile-hook ()
   (interactive)
-  (hi-lock-set-file-patterns 
-   '(("timestamp=.+?," (0 'hi-dim t))
-     ("super_column=None" (0 'hi-dim t))
-     ("[Cc]olumn[A-z]*" (0 'hi-dim t))
-     ("Col[A-Za-z]+," (0 'hi-dim t))
-     ("[Cc]onsis.+?," (0 'hi-dim t))
-     )))
-
-(add-hook 'compilation-mode-hook 'cassandra-be-good-hook)
+  (when custcompile-hi-lock
+    (hi-lock-set-file-patterns 
+     '(("timestamp=.+?," (0 'hi-dim t))
+       ("super_column=None" (0 'hi-dim t))
+       ("[Cc]olumn[A-z]*" (0 'hi-dim t))
+       ("Col[A-Za-z]+," (0 'hi-dim t))
+       ("[Cc]onsis.+?," (0 'hi-dim t))
+       ("x.expects.+?," (0 'compilation-info t)) ; bright green
+       ("predicate=.+\)\)" (0 'hi-dim t))
+       ("name='.*?'" (0 'button t)) ; underlined
+       ("value='.*?'" (0 'button t)) ; underlined
+       ("key='.*?'" (0 'compilation-error t)) ; pinkish
+       ;; for Fudge:
+       ("was unexpected; Expected:"	(0 'hi-pink t)) ; pink background
+       (" #[0-9] "	(0 'hi-pink t)) ; pink background
+       ))))
+;; (defun cassandra-be-good-hook () (interactive))
+(add-hook 'compilation-mode-hook 'custcompile-hook)
 
 ;; test text:
 ;; [KeySlice(columns=[ColumnOrSuperColumn(column=Column(timestamp=1269904700887173120,
