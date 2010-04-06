@@ -52,8 +52,9 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
     ;; nonverbose: row of dots/Error/Fatal:
     (when (re-search-forward "^[.EF]+$" nil t)
       (unittest-hide-region (point-min) (line-beginning-position)))
+    ;; footer: line, then "Ran 23 tests in 0.026s":
     (goto-char (point-max))
-    (when (re-search-backward "\n-*\nRan " nil t)
+    (when (re-search-backward "\n-+\nRan " nil t)
       (unittest-hide-region (point-max) (point)))))
   
 (setq compilation-finish-functions 
