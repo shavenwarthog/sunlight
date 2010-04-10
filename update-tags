@@ -1,7 +1,21 @@
 #!/usr/bin/env python
 
+'''
+update-tags: run "make" to update project TAGS files when source code changed
+
+update-tags <files> <directories>
+
+Directory is assumed to be the top of a project tree.  If a file path
+is given, its directory is used.
+
+For example, if all projects have a top-level "setup.py" file, this
+command will monitor all source trees:
+
+	update-tags ~/src/*/setup.py
+'''
+
 import glob, logging, os, re, sys
-from itertools import ifilter
+from itertools import chain, ifilter, imap
 from pyinotify import WatchManager, Notifier, ProcessEvent
 from pyinotify import IN_CLOSE_WRITE # pylint: disable-msg=E0611
 
@@ -18,7 +32,7 @@ def iter_parentdirs(path):
     return ifilter(os.path.isdir, dirs)
 
 def rebuild(path):
-    logging.debug(path)
+    logging.debug('rebuild: %s' % path)
     for makepath,dirpath in ( (os.path.join(dirpath, 'Makefile'), dirpath) 
                               for dirpath in iter_parentdirs(path) ):
         if (os.path.isfile(makepath) and 'inotify' in open(makepath).read()):
@@ -31,25 +45,32 @@ def rebuild(path):
             return
 
 def changed_cb(event):
-    if os.path.splitext(event.pathname)[-1] != '.py':
-        return
-    if re.search('[0-9]{4,}', event.pathname): # Flynote tempfile
+    if (os.path.splitext(event.pathname)[-1] != '.py'
+        or re.search('[0-9]{4,}', event.pathname) # Flynote tempfile
+                     ):
+        logging.debug("(%s: ignored)" % event.pathname)
         return
     rebuild(event.pathname)
 
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-def Monitor(pathlist):
+def get_dirlist(pathlist):
+    filedirlist = imap(os.path.dirname, ifilter(os.path.isfile, pathlist))
+    return ifilter(os.path.isdir, chain(pathlist, filedirlist))
+
+def monitor(pathlist):
     class PClose(ProcessEvent):
         def process_IN_CLOSE(self, event):
-            # f = event.name and os.path.join(event.path, event.name) or event.path
-            # print 'close event: ' + f
+            f = event.name and os.path.join(event.path, event.name) or event.path
+            print 'close event: ' + f
             changed_cb(event)
 
     wm = WatchManager() 
     notifier = Notifier(wm, PClose())
-
-    dirlist = [ path for path in pathlist if os.path.isdir(path) ]
+    dirlist = get_dirlist(pathlist)
+    if not dirlist:
+        logging.error("No directories given")
+        sys.exit(1)
     logging.info('watching: %s' % ' '.join(dirlist))
 
     [ wm.add_watch(dirpath, IN_CLOSE_WRITE) for dirpath in dirlist ]
@@ -69,10 +90,10 @@ def main(argv):
         sys.exit(1)
     if argv[1:]==['--auto']:
         dirs = [ os.path.dirname(path) for path in 
-                 glob.glob(os.path.expanduser('~/src/*/Makefile')) ]
-        Monitor(dirs)
+                 glob.glob(os.path.expanduser('~/src/*/setup.py')) ]
+        monitor(dirs)
     else:
-        Monitor(argv[1:])
+        monitor(argv[1:])
 
 
 if __name__ == '__main__':

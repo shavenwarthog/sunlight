@@ -1,6 +1,9 @@
 from nose.tools import eq_ as eq
 
 
+def test_syntax():
+    blam
+
 def testme():
     return 'zoot'
 
