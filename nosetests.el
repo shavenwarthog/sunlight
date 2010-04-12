@@ -36,63 +36,54 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   ""
   (put-text-property pos1 pos2 'invisible 'nosetests))
 
-(defun nosetests-jump-exception ()
+(defun nosetests-jump-exception (&rest unused)
   "Set point to first line of exception, after the traceback."
-  ;; =first outdented line after last "File" 
   (interactive)
   (goto-char (point-max))
-  (re-search-backward "File " nil t))
-;;    "beer"))
-;; (re-search-forward "^\\S-" nil t)))
-;; (global-set-key [kp-minus] 'nosetests-jump-exception)
+  (when (re-search-backward "^ *File" nil t)
+    (re-search-forward "^[^ ]" nil t)))
+  
 
-;; -*- mode: compilation; default-directory: "~/src/indigo.git/digisynd/indigo/test/" -*-
+;; (defadvice compilation-start (after command 
+;; 				    &optional mode name-function highlight-regexp)
+;;   (nosetests-jump-exception))
+;; (global-set-key [kp-home] 'nosetests-jump-exception)
+
+
 (defun nosetest-zapline (pat)
   (goto-char (point-min))
   (when (re-search-forward pat nil t)
     (nosetests-hide-region (line-beginning-position) (1+ (line-end-position)))))
-;; (nosetest-zapline "mode: compilation")
 
-;; Ran 123 tests in woo
-
-
-    (when nil
-      (nosetest-zapline "mode: compilation")
-      (nosetest-zapline "Compilation started")
-      (nosetest-zapline "bin/nosetests")
-      (nosetest-zapline "===="))
 
 (defun nosetests-hide-decorations (buffer status)
-  (with-current-buffer buffer
-    ;; header:
-    (goto-char (point-min))
-    (when (re-search-forward "^FAIL:" nil t)
-      (nosetests-hide-region (point-min) (line-beginning-position)))
-    ;; footer:
-    (goto-char (point-max))
-    (when (re-search-backward "^---" nil t)
-      (nosetests-hide-region (point-max) (line-beginning-position)))
+  (save-excursion
+    (with-current-buffer buffer
+      ;; header:
+      (goto-char (point-min))
+      (when (re-search-forward "^FAIL:" nil t)
+	(nosetests-hide-region (point-min) (line-beginning-position)))
+      ;; footer:
+      (goto-char (point-max))
+      (if (re-search-backward "^OK$" nil t)
+	  (progn
+	    (nosetests-hide-region (point-max) (1+ (line-end-position)))
+	    (nosetest-zapline "^Ran "))
+	(when (re-search-backward "^---" nil t)
+	  (nosetests-hide-region (point-max) (line-beginning-position))))
 
-    (when nil
-      (nosetest-zapline "^Ran")
-      (nosetest-zapline "Compilation exited")
-      (nosetest-zapline "FAILED"))
-    ;; "nosetests -v" has "testname ... ok"
-    (nosetest-zapline " \\.\\.\\. ")
-    ;; nonverbose: row of dots/Error/Fatal:
-    (when (re-search-forward "^[.EF]+$" nil t)
-      (nosetests-hide-region (point-min) (line-beginning-position)))))
-;; (defun nosetests-hide-decorations (buffer status))
+      ;; "nosetests -v" has "testname ... ok"
+      (nosetest-zapline " \\.\\.\\. ")
+      ;; nonverbose: row of dots/Error/Fatal:
+      (when (re-search-forward "^[.EF]+$" nil t)
+	(nosetests-hide-region (point-min) (line-beginning-position)))
+      )))
 
-
-(defun nosetests-jump-up (buffer status)
-  (with-current-buffer buffer
-    (forward-line -10)))
 
 (setq compilation-finish-functions 
       '(nosetests-hide-decorations
 	nosetests-maybe
-	nosetests-jump-up))
+	nosetests-jump-exception))
 
 ;; ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -116,7 +107,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 ;;     (when current
 ;;       (force-mode-line-update)
       
-(defun nosetests-hide-disable ()
+(defun nosetests-unhide ()
   "Make all stuff visible and buffer editable."
   (toggle-read-only -1)
   (interactive)
