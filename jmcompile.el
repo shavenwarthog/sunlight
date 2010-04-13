@@ -432,10 +432,12 @@ XX: assumes in same directory."
   (if (looking-at "[^\n]*set_trace")
       (progn
 	(beginning-of-line)
-	(when (re-search-forward " *\\(#\\)" nil t)
-	  (delete-backward-char 1)))
-    (insert "#"))
-  (insert-for-yank "import pdb ; pdb.set_trace()")
+	(if (re-search-forward " *\\(#\\)" nil t)
+	    (delete-backward-char 1)
+	  (insert "#")))
+    (progn
+      (insert-for-yank "import pdb ; pdb.set_trace()\n")
+      (previous-line)))
   (indent-for-tab-command))
 
 ;; (global-set-key (kbd "S-<kp-decimal>") 	'jmc-pdb-toggle)
