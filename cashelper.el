@@ -7,6 +7,7 @@
 (defface hi-dim '((t :foreground "gray20" :background nil)) "dark gray")
 
 (defvar custcompile-hi-lock nil "zoot")
+;; (setq custcompile-hi-lock t)
 (defun custcompile-hook ()
   (interactive)
   (when custcompile-hi-lock

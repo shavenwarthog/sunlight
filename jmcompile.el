@@ -429,11 +429,17 @@ XX: assumes in same directory."
 (defun jmc-pdb-toggle ()
   (interactive)
   (beginning-of-line)
+  (if (looking-at "[^\n]*set_trace")
+      (progn
+	(beginning-of-line)
+	(when (re-search-forward " *\\(#\\)" nil t)
+	  (delete-backward-char 1)))
+    (insert "#"))
   (insert-for-yank "import pdb ; pdb.set_trace()")
-  (indent-for-tab-command)
-  (insert "\n"))
+  (indent-for-tab-command))
 
-
+;; (global-set-key (kbd "S-<kp-decimal>") 	'jmc-pdb-toggle)
+ 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HACKS
 
 (when nil

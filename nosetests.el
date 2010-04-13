@@ -57,20 +57,27 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 
 (defun nosetests-hide-decorations (buffer status)
+  "Hide boilerplate, leaving print output, traceback, and exception details.
+"
   (save-excursion
     (with-current-buffer buffer
       ;; header:
       (goto-char (point-min))
-      (when (re-search-forward "^FAIL:" nil t)
+      (when (re-search-forward "----\n\\(ERR\\|FAIL\\|OK\\)" nil t)
 	(nosetests-hide-region (point-min) (line-beginning-position)))
       ;; footer:
-      (goto-char (point-max))
-      (if (re-search-backward "^OK$" nil t)
-	  (progn
-	    (nosetests-hide-region (point-max) (1+ (line-end-position)))
-	    (nosetest-zapline "^Ran "))
-	(when (re-search-backward "^---" nil t)
-	  (nosetests-hide-region (point-max) (line-beginning-position))))
+      (nosetest-zapline "^Ran ")
+      (nosetest-zapline "^FAILED ")
+      (nosetest-zapline " exited ")
+      (nosetest-zapline "^Compilation finished ")
+      
+      ;;  (goto-char (point-max))
+      ;; (if (re-search-backward "^OK$" nil t)
+      ;; 	  (progn
+      ;; 	    (nosetests-hide-region (point-max) (1+ (line-end-position)))
+      ;; 	    (nosetest-zapline "^Ran "))
+      ;; 	(when (re-search-backward "^---" nil t)
+      ;; 	  (nosetests-hide-region (point-max) (line-beginning-position))))
 
       ;; "nosetests -v" has "testname ... ok"
       (nosetest-zapline " \\.\\.\\. ")
