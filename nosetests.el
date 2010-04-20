@@ -63,8 +63,10 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
     (with-current-buffer buffer
       ;; header:
       (goto-char (point-min))
-      (when (re-search-forward "----\n\\(ERR\\|FAIL\\|OK\\)" nil t)
-	(nosetests-hide-region (point-min) (line-beginning-position)))
+      (when (re-search-forward " \\.\\.\\. " nil t)
+      	(nosetests-hide-region (point-min) (line-beginning-position)))
+      ;; (when (re-search-forward "\\(ERR\\|FAIL\\|OK\\)" nil t)
+      ;; 	(nosetests-hide-region (point-min) (line-beginning-position)))
       ;; footer:
       (nosetest-zapline "^Ran ")
       (nosetest-zapline "^FAILED ")
