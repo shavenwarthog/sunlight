@@ -19,11 +19,9 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
       (match-string-no-properties 2))))
   
 
-(defun nosetests-filepath ()
-  (interactive)
+(defun nosetests-current-filepath ()
   (when (re-search-backward "^ *File \"\\(.+?\\)\"" nil nil)
-    (message (match-string-no-properties 1))))
-;; (global-set-key [kp-add] 'nosetests-filepath)
+    (match-string-no-properties 1)))
 
 (defun nosetests-hide-match (matchnum)
   ""
@@ -50,28 +48,73 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 ;; (global-set-key [kp-home] 'nosetests-jump-exception)
 
 
-(defun nosetest-zapline (pat)
+(defun nosetests-zapline (pat)
   (goto-char (point-min))
   (when (re-search-forward pat nil t)
     (nosetests-hide-region (line-beginning-position) (1+ (line-end-position)))))
 
-
-(defun nosetests-hide-decorations (buffer status)
-  "Hide boilerplate, leaving print output, traceback, and exception details.
-"
+(defun nosetests-hide-all-matches (buffer pat matchnum)
   (save-excursion
     (with-current-buffer buffer
-      ;; header:
       (goto-char (point-min))
-      (when (re-search-forward " \\.\\.\\. " nil t)
-      	(nosetests-hide-region (point-min) (line-beginning-position)))
-      ;; (when (re-search-forward "\\(ERR\\|FAIL\\|OK\\)" nil t)
-      ;; 	(nosetests-hide-region (point-min) (line-beginning-position)))
-      ;; footer:
-      (nosetest-zapline "^Ran ")
-      (nosetest-zapline "^FAILED ")
-      (nosetest-zapline " exited ")
-      (nosetest-zapline "^Compilation finished ")
+      (while (re-search-forward pat nil t)
+      	(nosetests-hide-match matchnum)))))
+
+(defun nosetests-hide-projpaths (buffer)
+  (nosetests-hide-all-matches buffer "File .\\(/home/johnm/src/\\)" 1)
+  (nosetests-hide-all-matches buffer "File .+\\(, line [0-9]+\\)" 1))
+
+;; (global-set-key [kp-home] 'nosetests-hide-projpaths)
+      
+
+(defun string-starts (long short)
+  (string= (substring long 0 (length short)) short))
+;; (string-starts "beer" "b") => t
+;; (string-starts "beer" "x") => nil
+
+(defun nosetests-path-boringp (path)
+  (or (string-starts path "build/")
+      (string-match "lib/python" path)
+      ; (string-match "/eggs/" path
+      ))
+;; (nosetests-path-boringp "build/bdist.linux") => t
+;; (nosetests-path-boringp "zoot.py") => nil
+;; (nosetests-path-boringp "~/eggs/nose-0/case.py") => 1
+
+(defun nosetests-hide-boring (buffer)
+  (save-excursion
+    (with-current-buffer buffer
+      (goto-char (point-max))
+      (while (nosetests-current-filepath)
+      	(nosetests-hide-region
+	 (line-beginning-position)
+	 (line-beginning-position 2))))))
+
+(defun nosetests-hide-decorations (&optional buffer status)
+  "Hide boilerplate, leaving print output, traceback, and exception details.
+"
+  (interactive)
+  (let ((buffer (or buffer (current-buffer))))
+    ;; (nosetests-hide-projpaths buffer)
+    (save-excursion
+      (with-current-buffer buffer
+	;; header:
+	(goto-char (point-min))
+	(when (re-search-forward " \\.\\.\\. " nil t)
+	  (nosetests-hide-region (point-min) (line-beginning-position)))
+	(goto-char (point-min))
+	(when (re-search-forward "^ERROR:" nil t)
+	  (nosetests-hide-region (point-min) (line-beginning-position)))
+	;; footer:
+	(nosetest-zapline "^Ran ")
+	(nosetest-zapline "^FAILED ")
+	(nosetest-zapline " exited ")
+	(nosetest-zapline "^Compilation finished ")
+	(nosetest-zapline " \\.\\.\\. ")
+	;; nonverbose: row of dots/Error/Fatal:
+	(when (re-search-forward "^[.EF]+$" nil t)
+	  (nosetests-hide-region (point-min) (line-beginning-position)))))))
+
       
       ;;  (goto-char (point-max))
       ;; (if (re-search-backward "^OK$" nil t)
@@ -82,11 +125,12 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
       ;; 	  (nosetests-hide-region (point-max) (line-beginning-position))))
 
       ;; "nosetests -v" has "testname ... ok"
-      (nosetest-zapline " \\.\\.\\. ")
-      ;; nonverbose: row of dots/Error/Fatal:
-      (when (re-search-forward "^[.EF]+$" nil t)
-	(nosetests-hide-region (point-min) (line-beginning-position)))
-      )))
+
+(when nil
+  (global-set-key 
+   [kp-home] 
+   '(lambda () (interactive)
+      (nosetests-hide-decorations (current-buffer) nil))))
 
 
 (setq compilation-finish-functions 
