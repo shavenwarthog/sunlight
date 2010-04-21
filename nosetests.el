@@ -62,6 +62,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 (defun nosetests-hide-projpaths (buffer)
   (nosetests-hide-all-matches buffer "File .\\(/home/johnm/src/\\)" 1)
+  (nosetests-hide-all-matches buffer "File .\\(.+?/\\)egg/" 1)
   (nosetests-hide-all-matches buffer "File .+\\(, line [0-9]+\\)" 1))
 
 ;; (global-set-key [kp-home] 'nosetests-hide-projpaths)
@@ -103,7 +104,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	(when (re-search-forward " \\.\\.\\. " nil t)
 	  (nosetests-hide-region (point-min) (line-beginning-position)))
 	(goto-char (point-min))
-	(when (re-search-forward "^ERROR:" nil t)
+	(when (re-search-forward "^\\(ERROR\\|FAIL\\):" nil t)
 	  (nosetests-hide-region (point-min) (line-beginning-position)))
 	;; footer:
 	(nosetest-zapline "^Ran ")
@@ -111,20 +112,24 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	(nosetest-zapline " exited ")
 	(nosetest-zapline "^Compilation finished ")
 	(nosetest-zapline " \\.\\.\\. ")
+	;; boring parts of file paths:
+	(nosetests-hide-projpaths buffer)
 	;; nonverbose: row of dots/Error/Fatal:
 	(when (re-search-forward "^[.EF]+$" nil t)
-	  (nosetests-hide-region (point-min) (line-beginning-position)))))))
+	  (nosetests-hide-region (point-min) (line-beginning-position)))
+	(nosetests-replace-line)))))
+;; (global-set-key [kp-home] 'nosetests-hide-decorations)      
 
-      
-      ;;  (goto-char (point-max))
-      ;; (if (re-search-backward "^OK$" nil t)
-      ;; 	  (progn
-      ;; 	    (nosetests-hide-region (point-max) (1+ (line-end-position)))
-      ;; 	    (nosetest-zapline "^Ran "))
-      ;; 	(when (re-search-backward "^---" nil t)
-      ;; 	  (nosetests-hide-region (point-max) (line-beginning-position))))
+;; Unicode BOX DRAWINGS LIGHT HORIZONTAL = 2500
+(defun nosetests-replace-line ()
+  (goto-char (point-min))
+  (while (re-search-forward "^---+" nil t)
+    (replace-match (make-string 60 ?─)))
+  (goto-char (point-min))
+  (while (re-search-forward "^===+" nil t)
+    (replace-match (make-string 60 ?═))))
 
-      ;; "nosetests -v" has "testname ... ok"
+
 
 (when nil
   (global-set-key 
