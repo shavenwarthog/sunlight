@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 ERR='''unnamed.get_slice(column_parent=ColumnParent(column_family='words', super_column=None), keyspace='demo-terms', consistency_level=1, predicate=SlicePredicate(column_names=None, slice_range=SliceRange(count=3, start='food', reversed=False, finish='')), key='f')'''
+ERR2='''get_slice(arg=call(c1='c1', c2=None), key='ding')'''
 
 import ast
 
@@ -26,17 +27,34 @@ class MyVisitor(ast.NodeVisitor):
     #         if 'ast.Call' in str(node):
     #             self.visit_Call(node, indent+1)
     #     # printme(1, node)
+    def visit_keyword(self, node):
+        print ast.dump(node, annotate_fields=True, include_attributes=False)
+        if hasattr(node,'col_offset'):
+            print node.col_offset
+        print node.arg, 
+        print type(node.value),type(node.value) is ast.Str
+        if type(node.value) is ast.Str:
+            print repr(node.value.s)
+        elif type(node.value) is ast.Num:
+            print repr(node.value.n)
+        else:
+            print '?',node.value
+        print
 
     def generic_visit(self, node):
-        # print type(node).__name__, node.__dict__
-        print ast.dump(node, annotate_fields=True, include_attributes=False)
+        if 0:
+            print '\t',ast.dump(
+                node, annotate_fields=True, 
+                include_attributes=False)
         super(MyVisitor,self).generic_visit(node)
 
 if 0:
     code = 'dict(a=5, b=unused(3))'
 else:
-    code = ERR
+    code = ERR2
 a = ast.parse(code)
+
+print '*'*40
 print code
 print
 MyVisitor().generic_visit(a)
@@ -56,3 +74,18 @@ Name {'ctx': <_ast.Load object at 0x7f980b02d5d0>, 'id': 'unused', 'col_offset':
 Load {}
 Num {'lineno': 1, 'col_offset': 19, 'n': 3}
 '''
+
+if 01:
+    print '*'*40
+    print code
+    print
+    mod=a
+    expr = ast.iter_child_nodes(mod).next()
+    call = ast.iter_child_nodes(expr).next()
+    args = list(ast.iter_child_nodes(call))
+
+    name = args.pop(0)
+    print name.id
+    for arg in args:
+        print arg.arg, arg.value.lineno, arg.value.col_offset
+        # print arg.value.__dict__
