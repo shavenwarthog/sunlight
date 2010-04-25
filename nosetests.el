@@ -61,7 +61,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
       	(nosetests-hide-match matchnum)))))
 
 (defun nosetests-hide-projpaths (buffer)
-  (nosetests-hide-all-matches buffer "File .\\(/home/johnm/src/\\)" 1)
+  (nosetests-hide-all-matches buffer "File .\\(/home/.+?/src/\\)" 1)
   (nosetests-hide-all-matches buffer "File .\\(.+?/\\)egg/" 1)
   (nosetests-hide-all-matches buffer "File .+\\(, line [0-9]+\\)" 1))
 
@@ -107,11 +107,11 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	(when (re-search-forward "^\\(ERROR\\|FAIL\\):" nil t)
 	  (nosetests-hide-region (point-min) (line-beginning-position)))
 	;; footer:
-	(nosetest-zapline "^Ran ")
-	(nosetest-zapline "^FAILED ")
-	(nosetest-zapline " exited ")
-	(nosetest-zapline "^Compilation finished ")
-	(nosetest-zapline " \\.\\.\\. ")
+	(nosetests-zapline "^Ran ")
+	(nosetests-zapline "^FAILED ")
+	(nosetests-zapline " exited ")
+	(nosetests-zapline "^Compilation finished ")
+	(nosetests-zapline " \\.\\.\\. ")
 	;; boring parts of file paths:
 	(nosetests-hide-projpaths buffer)
 	;; nonverbose: row of dots/Error/Fatal:

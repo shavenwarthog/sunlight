@@ -20,7 +20,7 @@
 (defcustom jmc-project-source-dir nil "woo")
 (defcustom jmc-project-source-path nil "woo")
 (defcustom jmc-project-source-name nil "")
-(defcustom jmc-project-testpath nil "")
+(defcustom jmc-project-test-path nil "")
 
 (defun jmc-project-set (&optional path)
   "Set project name and directory based on current buffer's file path."
@@ -34,31 +34,33 @@
 	  jmc-project-test-path	nil)
     (message (format "project: %s in %s" name jmc-project-source-dir))))
 
-(defun jmc-project-set-testpath (&optional path)
+(defun jmc-project-set-test-path (&optional path)
   ""
   (interactive)
-  (setq jmc-project-testpath (or path (buffer-file-name))))
+  (setq jmc-project-source-path nil
+	jmc-project-test-path (or path (buffer-file-name))))
 
 (defun jmc-project-find (name)
   "Open buffer, or open file."
-  (find-file name))
+  (if (file-exists-p name)
+    (find-file name)))
 ;; (concat jmc-project-dir "/" name)))
 
 ;; XXXX
 (defun jmc-project-open-code ()
   (interactive)
-  (jmc-project-find (concat jmc-project-name ".py")))
+  (jmc-project-find
+   (cond 
+    (jmc-project-source-path	jmc-project-source-path)
+    (jmc-project-name    	(format "%s.py" jmc-project-name)))))
 
-;; XXXX
+;; XX
 (defun jmc-project-open-test ()
   (interactive)
-  (cond 
-   (jmc-project-testpath	(jmc-project-find jmc-project-testpath))
-   ;; (jmc-project-top-dir		(jmc-project-find 
-   ;; 				 (format jmc-project-top-dir 
-    
-  (jmc-project-name    		(jmc-project-find 
-				 (format "test/test_%s.py" jmc-project-name)))))
+  (jmc-project-find
+   (cond 
+    (jmc-project-test-path	jmc-project-test-path)
+    (jmc-project-name    	(format "test/test_%s.py" jmc-project-name)))))
 
 (defun jmc-project-open-spec ()
   (interactive)

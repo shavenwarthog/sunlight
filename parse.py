@@ -1,15 +1,44 @@
 #!/usr/bin/env python
 
+ERR='''unnamed.get_slice(column_parent=ColumnParent(column_family='words', super_column=None), keyspace='demo-terms', consistency_level=1, predicate=SlicePredicate(column_names=None, slice_range=SliceRange(count=3, start='food', reversed=False, finish='')), key='f')'''
+
 import ast
+
+
+def printme(indent, node):
+    for kw in sorted(node.keywords, cmp=lambda a,b: cmp(a.arg,b.arg)):
+        print ' '*indent*2, kw.arg
+        if hasattr(kw, 'value'):
+            printme(indent+1, [kw.value])
+        else:
+            try:
+                print ' '*(indent+1)*2, kw.s
+            except:
+                print '? %s' % kw
+
+        printme(1, [node])
+
 class MyVisitor(ast.NodeVisitor):
-    def 
+    # def visit_Call(self, node, indent=None):
+    #     indent = indent or 0
+    #     print ' '*(indent*2), node, getattr(node,'keywords','n/a')
+    #     for node in node.keywords:
+    #         if 'ast.Call' in str(node):
+    #             self.visit_Call(node, indent+1)
+    #     # printme(1, node)
+
     def generic_visit(self, node):
-        print type(node).__name__, node.__dict__
+        # print type(node).__name__, node.__dict__
+        print ast.dump(node, annotate_fields=True, include_attributes=False)
         super(MyVisitor,self).generic_visit(node)
 
-code = 'dict(a=5, b=unused(3))'
+if 0:
+    code = 'dict(a=5, b=unused(3))'
+else:
+    code = ERR
 a = ast.parse(code)
 print code
+print
 MyVisitor().generic_visit(a)
 
 '''>>> dict(a=5, b=unused(3))
