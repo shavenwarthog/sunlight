@@ -9,6 +9,10 @@ code=ERR
 
 class CallCode(list):
     def __init__(self, code):
+        super(CallCode,self).__init__()
+        self.parse(code)
+
+    def parse(self, code):
         self.code = code
         mod = ast.parse(code)
         expr = ast.iter_child_nodes(mod).next()
@@ -22,11 +26,18 @@ class CallCode(list):
                     v_lineno=arg.value.lineno,
                     v_offset=arg.value.col_offset,
                     ) )
+        maxpos=-1
+        for arg in reversed(self):
+            arg['v_code'] = self.code[arg['v_offset']:maxpos]
+            maxpos = code.rfind(',',None,arg['v_offset'])
+            
 
 if 01:
     print '*'*40
     print code
     print
     cc = CallCode(code)
-    print cc
+    for c in cc:
+        print c['arg'],'\t',c['v_code']
+
 
