@@ -6,12 +6,13 @@ ERR2='''get_slice(arg=call(c1='c1', c2=None), key='ding')'''
 import ast, re
 from itertools import ifilter
 
-code=ERR
 
 class CallCode(list):
     def __init__(self, code):
         super(CallCode,self).__init__()
         self.name = None
+        self.code = None
+        self.mod = None
         self.parse(code)
         self.valuepos = list(self.findvalues(self.mod))
 
@@ -26,12 +27,11 @@ class CallCode(list):
     def parse(self, code):
         self.code = code
         self.mod = ast.parse(code)
-        expr = ast.iter_child_nodes(self.mod).next()
-        call = ast.iter_child_nodes(expr).next()
-        for arg in ast.iter_child_nodes(call):
-            if type(arg) is ast.Name:
-                self.name = arg.id
-                continue
+        call = self.mod
+        while type(call) is not ast.Call:
+            call = ast.iter_child_nodes(call).next() # pylint: disable-msg=E1101
+        self.name = 'beer'
+        for arg in call.keywords:
             self.append( dict(
                     arg=arg.arg,
                     v_lineno=arg.value.lineno,
@@ -43,7 +43,9 @@ class CallCode(list):
             maxpos = code.rfind(',',None,arg['v_offset'])
             
 
-if 01:
+if __name__=='__main__':
+    code=ERR
+    # code = 'unnamed.get_slice(column_parent=Column)'
     print '*'*40
     print code
     print
