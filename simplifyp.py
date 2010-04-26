@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import fileinput, operator, re
-from itertools import imap
+from itertools import imap, izip_longest
 from parse import CallCode
 
 class ParseAssert(dict):
@@ -29,9 +29,14 @@ class ParseAssert(dict):
         # for item in self['rights']:
         #     item['cc'] = CallCode(item['code'])
 
+def simpargs(args):
+    # XX: rstrip right paren:
+    return ((item['arg'], item['v_code'].rstrip(')')) for item in args)
+
 class UnexpectedWithArgs(ParseAssert):
     PAT = ('AssertionError: fake:'
-           '(?P<left_code>.+?) was called unexpectedly with args '
+           '(?P<left_code>.+?)'
+           '\[0\] was called unexpectedly with args '
            '(?P<right_args>.+)'
            )
 
@@ -52,16 +57,16 @@ class Diff(list):
         self.diff()
 
     def diff(self):
-        def simpargs(args):
-            return ((item['arg'], item['v_code']) for item in args)
         left = dict(simpargs(self.cc1))
         right = dict(simpargs(self.cc2))
-        print 'left',left; print right
         for arg,vcode in sorted( set(left.iteritems()) ^ set(right.iteritems()) ):
-            print arg,vcode
             self.append( [
                     arg, left.get(arg,None), right.get(arg,None)
                     ] )
+
+# def threecol(left,mid,right, widths):
+#     for a,b,c in izip_longest(left,mid,right):
+#         yield '%\
 
 def main():
     line = None
@@ -70,11 +75,30 @@ def main():
             break
 
     exp = UnexpectedWithArgs(line)
-    print exp
-    print exp['left_cc']
-    print
-    print exp['right_cc']
-    print
+    print line
+    # print exp
+    # print exp['left_cc']
+    # print
+    # print exp['right_cc']
+    # print
+    diff = Diff(exp['left_cc'], exp['right_cc'])
+    print '%s() called with different args:' % exp['left_cc'].name
+    for arg,left,right in diff:
+        print '** %-10s %-32s %-32s' % (
+            arg[:10],
+            str(left or '<undef>')[:32],
+            str(right or '<undef>')[:32],
+            )
+    diffargs = zip(*diff)[0] # pylint: disable-msg=W0142
+    for arg,code in sorted( simpargs(exp['left_cc']) ):
+        if arg in diffargs:
+            continue            # XX
+        print '%-13s %-64s' % (
+            arg[:13],
+            code[:64],
+            )
+
+
     # print Diff( exp['left_cc'], exp['rights'][0]['cc'] )
     # print exp['left_code']
     # print

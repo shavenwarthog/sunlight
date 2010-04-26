@@ -8,6 +8,8 @@ from itertools import ifilter
 
 
 class CallCode(list):
+    Error = Exception
+
     def __init__(self, code):
         super(CallCode,self).__init__()
         self.name = None
@@ -29,7 +31,10 @@ class CallCode(list):
         self.mod = ast.parse(code)
         call = self.mod
         while type(call) is not ast.Call:
-            call = ast.iter_child_nodes(call).next() # pylint: disable-msg=E1101
+            try:
+                call = ast.iter_child_nodes(call).next() # pylint: disable-msg=E1101
+            except StopIteration:
+                raise self.Error("call not found, %s" % call)
         self.name = 'beer'
         for arg in call.keywords:
             self.append( dict(
@@ -45,7 +50,8 @@ class CallCode(list):
 
 if __name__=='__main__':
     code=ERR
-    # code = 'unnamed.get_slice(column_parent=Column)'
+    code = 'unnamed.get_slice(column_parent=Column)'
+    # code = '(column_parent=Column)'
     print '*'*40
     print code
     print

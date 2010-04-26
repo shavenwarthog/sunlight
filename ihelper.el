@@ -7,6 +7,6 @@
 
 (defun ih-zoot ()
   (interactive)
-  (ih-dir-object (thing-at-point 'symbol)))
+  (ih-dir-object (thing-at-point 'line)))
   
 ;; (global-set-key (kbd "C-'") 'ih-zoot)
