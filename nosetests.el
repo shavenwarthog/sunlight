@@ -63,21 +63,23 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 (defun nosetests-delete-line ()
   (delete-region (line-beginning-position) (line-beginning-position 2)))
 
-;; (global-set-key 
-;;  [kp-multiply]
-;;  '(lambda ()
-;;     (interactive)
-;;     (nosetests-mapc-matches 
-;;      (current-buffer) 
-;;      "bogus"
-;;      'nosetest-delete-line)))
-
-;; XX: disable next-error and hide instead of fully deleting
-(defun nosetests-delete-boring-paths ()    
+;; TODO: disable next-error and hide instead of fully deleting
+(defun nosetests-disable-boring ()    
   (nosetests-mapc-matches 
    (current-buffer) 
    "File .+ apply_clear_and_verify"
-   'nosetest-delete-line))
+   'nosetests-delete-line)
+  (nosetests-mapc-matches 
+   (current-buffer) 
+   "File .+ /eggs/"
+   'nosetests-delete-line))
+
+(global-set-key 
+ [kp-multiply]
+ '(lambda ()
+    (interactive)
+    (nosetests-disable-boring)))
+
 
 
 (defun nosetests-hide-all-matches (buffer pat matchnum)
@@ -168,7 +170,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	(when (re-search-forward "^[.EF]+$" nil t)
 	  (nosetests-hide-region (point-min) (line-beginning-position)))
 	;; X deletions:
-	(nosetests-delete-boring-paths )
+	(nosetests-disable-boring)
 	))))
 ;; (global-set-key [kp-home] 'nosetests-hide-decorations)      
 

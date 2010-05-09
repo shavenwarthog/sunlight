@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
-import fileinput, operator, re
-from itertools import imap, izip_longest
+'''
+simplifyp -- simplify Nosetest output
+'''
+
+import fileinput, re, sys
 from parse import CallCode
 
 class ParseAssert(dict):
@@ -22,12 +25,6 @@ class ParseAssert(dict):
         if not m:
             return
         self.update(m.groupdict())
-        # self['left_cc'] = CallCode(self['left_code'])
-        # self['rights'] = [
-        #     m.groupdict() for m in re.finditer(self.NUMCALL, self['rights_str'])
-        #     ]
-        # for item in self['rights']:
-        #     item['cc'] = CallCode(item['code'])
 
 def simpargs(args):
     # XX: rstrip right paren:
@@ -36,7 +33,7 @@ def simpargs(args):
 class UnexpectedWithArgs(ParseAssert):
     PAT = ('AssertionError: fake:'
            '(?P<left_code>.+?)'
-           '\[0\] was called unexpectedly with args '
+           '[^)]* was called unexpectedly with args ' # zap optional "[0]" (XX?)
            '(?P<right_args>.+)'
            )
 
@@ -59,35 +56,32 @@ class Diff(list):
     def diff(self):
         left = dict(simpargs(self.cc1))
         right = dict(simpargs(self.cc2))
-        for arg,vcode in sorted( set(left.iteritems()) ^ set(right.iteritems()) ):
+        diffkv = set(left.iteritems()) ^ set(right.iteritems())
+        for arg in sorted(set( (key for key,_ in diffkv) )):
             self.append( [
                     arg, left.get(arg,None), right.get(arg,None)
                     ] )
+def termwidth():
+    import os
+    if 0:
+        # http://stackoverflow.com/questions/566746/how-to-get-console-window-width-in-python
+        rows, columns = os.popen('stty size', 'r').read().split()
+        return columns
+    else:
+        return int(os.environ.get('COLUMNS') or '80') # XX
 
-# def threecol(left,mid,right, widths):
-#     for a,b,c in izip_longest(left,mid,right):
-#         yield '%\
-
-def main():
-    line = None
-    for line in fileinput.input(files=['err3.txt']):
-        if 'with args' in line:
-            break
-
+def handle_withargs(line):
     exp = UnexpectedWithArgs(line)
-    print line
-    # print exp
-    # print exp['left_cc']
-    # print
-    # print exp['right_cc']
-    # print
     diff = Diff(exp['left_cc'], exp['right_cc'])
+
+    colwidth = int((termwidth() - 18) / 2)
     print '%s() called with different args:' % exp['left_cc'].name
     for arg,left,right in diff:
-        print '** %-10s %-32s %-32s' % (
+        FMT = '** %-10s %-'+str(colwidth)+'s %-'+str(colwidth)+'s'
+        print FMT % (
             arg[:10],
-            str(left or '<undef>')[:32],
-            str(right or '<undef>')[:32],
+            str(left or '<undef>')[:colwidth],
+            str(right or '<undef>')[:colwidth],
             )
     diffargs = zip(*diff)[0] # pylint: disable-msg=W0142
     for arg,code in sorted( simpargs(exp['left_cc']) ):
@@ -98,6 +92,17 @@ def main():
             code[:64],
             )
 
+def main(paths):
+    line = None
+    for line in fileinput.input(files=paths):
+        if 'with args' in line:
+            try:
+                handle_withargs(line)
+            except KeyError as exc:
+                print "KeyError(%s): handle_withargs()" % exc
+                print line,
+        else:
+            print line,
 
     # print Diff( exp['left_cc'], exp['rights'][0]['cc'] )
     # print exp['left_code']
@@ -110,4 +115,10 @@ def main():
     #         print arg['arg'], arg['v_code']
     #     print
 
-main()
+if not sys.argv[1:]:
+    print 'usage'
+    sys.exit(2)
+main(sys.argv[1:])
+
+
+

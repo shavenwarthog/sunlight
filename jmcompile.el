@@ -79,7 +79,7 @@ Run function 'test'.
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PYTHON/NOSE
 
 (defcustom jmc-nose-postproc "" "Post-processor, if any.")
-(setq jmc-nose-postproc	" 2>&1 | ~/bin/jmc_simplify3 -")
+(setq jmc-nose-postproc	" 2>&1 | ~/bin/simplifyp -")
 ;; (setq jmc-nose-postproc	nil)
 ;; (setq jmc-nose-program "/usr/bin/nosetests")
 
@@ -298,18 +298,18 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: GENERAL
 
-(defun jmc-next ()
-  "Jump to the next message.
-From compilation (next-error), flymake-goto-next-error, or XX.
-Jump to end of last unit test definition.
-Debugger: next.
-"
-  (interactive)
-  (cond 
-   ((string= major-mode "gud-mode")		(gud-next))
-   ((get-buffer-window "*compilation*")		(next-error)) ; Compilation visible
-   ((assq 'flynote-mode minor-mode-alist)	(flynote-next))
-   (t						(next-error))))
+;; (defun jmc-next ()
+;;   "Jump to the next message.
+;; From compilation (next-error), flymake-goto-next-error, or XX.
+;; Jump to end of last unit test definition.
+;; Debugger: next.
+;; "
+;;   (interactive)
+;;   (cond 
+;;    ((string= major-mode "gud-mode")		(gud-next))
+;;    ((get-buffer-window "*compilation*")		(next-error)) ; Compilation visible
+;;    ((assq 'flynote-mode minor-mode-alist)	(flynote-next))
+;;    (t						(next-error))))
 
 
 (defun jmc-test-fast ()

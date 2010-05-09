@@ -8,7 +8,7 @@
     (global-set-key [kp-down] 'jmc-project-open-test)
     (global-set-key [kp-left] 'jmc-project-open-spec)
     (global-set-key [C-kp-end] 'jmc-project-set)
-    (global-set-key [C-kp-down] 'jmc-project-set-testpath)))
+    (global-set-key [C-kp-down] 'jmc-project-set-test-path)))
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PROJECT
