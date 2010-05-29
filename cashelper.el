@@ -6,19 +6,32 @@
 
 (defface hi-dim '((t :foreground "gray20" :background nil)) "dark gray")
 
+(defface hi-invisible 
+  '((t :foreground "green4" 
+       :invisible t 
+       ;; :weight 'ultra-light
+       )) "red")
+
 (defvar custcompile-hi-lock nil "zoot")
-;; (setq custcompile-hi-lock t)
+(setq custcompile-hi-lock t)
+
 (defun custcompile-hook ()
   (interactive)
   (when custcompile-hi-lock
     (hi-lock-set-file-patterns 
-     '(("timestamp=.+?," (0 'hi-dim t))
+     '(
        ("super_column=None" (0 'hi-dim t))
        ("[Cc]olumn[A-z]*" (0 'hi-dim t))
        ("Col[A-Za-z]+," (0 'hi-dim t))
        ("[Cc]onsis.+?," (0 'hi-dim t))
+       ("Slice[A-z]+,?" (0 'hi-dim t))
+       ;; dim name=value, for some names:
+       ("\\(count\\|predicate\\|timestamp\\)=.+?\\(\)\\|,\\)" (0 'hi-dim t))
+
+       ;; highlight:
+       ("^[ \t]*\\([A-z-.]+\\).\\{100,\\}" (1 'compilation-info t)) ; first word of a long line
        ("x.expects.+?," (0 'compilation-info t)) ; bright green
-       ("predicate=.+\)\)" (0 'hi-dim t))
+       
        ("name='.*?'" (0 'button t)) ; underlined
        ("value='.*?'" (0 'button t)) ; underlined
        ("key='.*?'" (0 'compilation-error t)) ; pinkish

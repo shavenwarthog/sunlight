@@ -7,6 +7,9 @@
 ;; mod1.mod2.zoot  73     42    57%   25, 37, 40, 43, 58, 116, 155-168
 
 
+(defvar nosetests-hide nil "Hide boring things")
+
+
 (defun nosetests-current ()
   "Return name of unit test on this line or above.
 Ex: 'ERROR: example.test_syntax' => 'test_syntax'
@@ -146,32 +149,33 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   "Hide boilerplate, leaving print output, traceback, and exception details.
 "
   (interactive)
-  (let ((buffer (or buffer (current-buffer))))
-    ;; (nosetests-hide-projpaths buffer)
-    (save-excursion
-      (with-current-buffer buffer
-	;; header:
-	(goto-char (point-min))
-	(when (re-search-forward " \\.\\.\\. " nil t)
-	  (nosetests-hide-region (point-min) (line-beginning-position)))
-	(goto-char (point-min))
-	(when (re-search-forward "^\\(ERROR\\|FAIL\\):" nil t)
-	  (nosetests-hide-region (point-min) (line-beginning-position)))
-	;; footer:
-	(nosetests-hide-line "^Ran ")
-	(nosetests-hide-line "^FAILED ")
-	(nosetests-hide-line " exited ")
-	(nosetests-hide-line "^Compilation finished ")
-	(nosetests-hide-line " \\.\\.\\. ")
-	;; traceback:
-	(nosetests-hide-path-prefixes buffer)	;; boring parts of file paths
-	(nosetests-hide-paths buffer)		;; entire paths (keep code)
-	;; nonverbose: row of dots/Error/Fatal:
-	(when (re-search-forward "^[.EF]+$" nil t)
-	  (nosetests-hide-region (point-min) (line-beginning-position)))
-	;; X deletions:
-	(nosetests-disable-boring)
-	))))
+  (when nosetests-hide
+    (let ((buffer (or buffer (current-buffer))))
+      ;; (nosetests-hide-projpaths buffer)
+      (save-excursion
+	(with-current-buffer buffer
+	  ;; header:
+	  (goto-char (point-min))
+	  (when (re-search-forward " \\.\\.\\. " nil t)
+	    (nosetests-hide-region (point-min) (line-beginning-position)))
+	  (goto-char (point-min))
+	  (when (re-search-forward "^\\(ERROR\\|FAIL\\):" nil t)
+	    (nosetests-hide-region (point-min) (line-beginning-position)))
+	  ;; footer:
+	  (nosetests-hide-line "^Ran ")
+	  (nosetests-hide-line "^FAILED ")
+	  (nosetests-hide-line " exited ")
+	  (nosetests-hide-line "^Compilation finished ")
+	  (nosetests-hide-line " \\.\\.\\. ")
+	  ;; traceback:
+	  (nosetests-hide-path-prefixes buffer)	;; boring parts of file paths
+	  (nosetests-hide-paths buffer)	;; entire paths (keep code)
+	  ;; nonverbose: row of dots/Error/Fatal:
+	  (when (re-search-forward "^[.EF]+$" nil t)
+	    (nosetests-hide-region (point-min) (line-beginning-position)))
+	  ;; X deletions:
+	  (nosetests-disable-boring)
+	  )))))
 ;; (global-set-key [kp-home] 'nosetests-hide-decorations)      
 
 

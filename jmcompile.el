@@ -80,7 +80,7 @@ Run function 'test'.
 
 (defcustom jmc-nose-postproc "" "Post-processor, if any.")
 (setq jmc-nose-postproc	" 2>&1 | ~/bin/simplifyp -")
-;; (setq jmc-nose-postproc	nil)
+(setq jmc-nose-postproc	nil)
 ;; (setq jmc-nose-program "/usr/bin/nosetests")
 
 (defcustom jmc-nose-exclude		nil  "Exclude these tests (regex)")
@@ -346,8 +346,12 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 ; (global-set-key [kp-delete] 'jmc-goto-last-import)
 
 
-(defalias 'jmc-nose-program		
-  (apply-partially 'jmc-find "nosetests"))
+(if (functionp 'apply-partially)
+    (defalias 'jmc-nose-program		
+      (apply-partially 'jmc-find "nosetests"))
+  (defun jmc-nose-program ()
+    (jmc-find "nosetests")))
+
 ;; (jmc-nose-program) => "nosetests"
 
 (defcustom jmc-nose-switches 		"-sv" 
