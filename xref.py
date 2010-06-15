@@ -9,7 +9,7 @@ from itertools import imap
 from nose.tools import eq_ as eq
 from operator import itemgetter
 
-verbose = 2
+verbose = 0
 
 if 0:
     tagsdata = os.popen('ctags -f - zoot.py')
@@ -49,16 +49,31 @@ def test_enum_pos():
         [(0, 'tasty', 0, 6), (1, 'beer', 6, 11)],
         )
 
-PRIMLIST = set('set int len range reduce type __init__'.split())
+PRIMLIST = set('format int len range reduce set type __init__'.split())
 
 class TagsFile(list):
     def append(self, path, tagdef, tagname, lineno, offset):
-        self += (path, tagdef, tagname, lineno, offset)
+        super(TagsFile,self).append( (path, tagdef, tagname, lineno, offset) )
+
     def writeto(self, outpath):
         outf = open(outpath, 'w')
+        lastpath = None
+        for (path, tagdef, tagname, lineno, offset) in self:
+            if path is not lastpath:
+                print >> outf, '\f'
+                print >> outf, '%s,%s' % (path, 0) # XX?
+                print >> outf, '\x7f%s\x011,0' % path      # XX?
+                lastpath = path
+            print >> outf, symref(
+                    tagdef=tagdef, 
+                    tagname=tagname,
+                    lineno=lineno,
+                    offset=offset,
+                    )
+        outf.close()
 
 def main(paths):
-    tagsf = open('calls.tags', 'w')
+    tagsf = TagsFile()
     for path in paths:
         if not path.endswith('.py'):
             continue
@@ -66,9 +81,6 @@ def main(paths):
             continue
         print '%s:' % path
         source = open(path, 'r').read()
-        print >> tagsf, '\f'
-        print >> tagsf, '%s,%s' % (path, len(source))      # X?
-        print >> tagsf, '\x7f%s\x011,0' % path      # X?
 
         in_def = None
         for num,line,begpos,_ in enum_pos(source.split('\n')):
@@ -87,13 +99,20 @@ def main(paths):
                     continue    # XXX?
                 if verbose:
                     print '- %s: calls %s%s' % (in_def[0], calls, '()')
-                print >> tagsf, symref(
+                tagsf.append(
+                    path=path,
                     tagdef=line,
                     tagname=m.group(1),
                     lineno=num+1, 
                     offset=begpos,
                     )
-    tagsf.close()
+#                 print >> tagsf, symref(
+#                     tagdef=line,
+#                     tagname=m.group(1),
+#                     lineno=num+1, 
+#                     offset=begpos,
+#                     )
+    tagsf.writeto('calls.tags')
 
 if __name__=='__main__':
     main(sys.argv[1:])
