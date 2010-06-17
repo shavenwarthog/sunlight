@@ -51,9 +51,9 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 ;; (global-set-key [kp-home] 'nosetests-jump-exception)
 
 
-(defun nosetests-hide-line (pat)
+(defun nosetests-hide-matching-lines (pat)
   (goto-char (point-min))
-  (when (re-search-forward pat nil t)
+  (while (re-search-forward pat nil t)
     (nosetests-hide-region (line-beginning-position) (1+ (line-end-position)))))
 
 (defun nosetests-mapc-matches (buffer pat func)
@@ -77,11 +77,11 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
    "File .+ /eggs/"
    'nosetests-delete-line))
 
-(global-set-key 
- [kp-multiply]
- '(lambda ()
-    (interactive)
-    (nosetests-disable-boring)))
+;; (global-set-key 
+;;  [kp-multiply]
+;;  '(lambda ()
+;;     (interactive)
+;;     (nosetests-disable-boring)))
 
 
 
@@ -143,6 +143,18 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
       (with-current-buffer buffer
 	(run-hooks 'nosetests-hide-hooks)))))
 
+;; run_tests harness:
+(defun nosetests-custom ()
+  (interactive)
+  (mapc 'nosetests-hide-matching-lines 
+	(list 
+	 "^\\(Creat\\|Install\\)"
+	 "^\\+ \\([A-Z][A-Z]\\).+$"
+	 "^\\+\\+ \\([A-Z][A-Z]\\).+$"
+	 )))
+
+;;  (global-set-key [kp-delete] 'nosetests-custom)
+
 
 
 (defun nosetests-hide-decorations (&optional buffer status)
@@ -154,6 +166,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
       ;; (nosetests-hide-projpaths buffer)
       (save-excursion
 	(with-current-buffer buffer
+	  (nosetests-custom)
 	  ;; header:
 	  (goto-char (point-min))
 	  (when (re-search-forward " \\.\\.\\. " nil t)
@@ -162,11 +175,11 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	  (when (re-search-forward "^\\(ERROR\\|FAIL\\):" nil t)
 	    (nosetests-hide-region (point-min) (line-beginning-position)))
 	  ;; footer:
-	  (nosetests-hide-line "^Ran ")
-	  (nosetests-hide-line "^FAILED ")
-	  (nosetests-hide-line " exited ")
-	  (nosetests-hide-line "^Compilation finished ")
-	  (nosetests-hide-line " \\.\\.\\. ")
+	  (nosetests-hide-all-matching-lines "^Ran ")
+	  (nosetests-hide-all-matching-lines "^FAILED ")
+	  (nosetests-hide-all-matching-lines " exited ")
+	  (nosetests-hide-all-matching-lines "^Compilation finished ")
+	  (nosetests-hide-all-matching-lines " \\.\\.\\. ")
 	  ;; traceback:
 	  (nosetests-hide-path-prefixes buffer)	;; boring parts of file paths
 	  (nosetests-hide-paths buffer)	;; entire paths (keep code)
@@ -176,7 +189,9 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	  ;; X deletions:
 	  (nosetests-disable-boring)
 	  )))))
-;; (global-set-key [kp-home] 'nosetests-hide-decorations)      
+(when t
+  (global-set-key [kp-decimal] 'nosetests-hide-decorations)
+  (global-set-key [C-kp-decimal] 'nosetests-unhide))
 
 
 

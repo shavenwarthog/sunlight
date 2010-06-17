@@ -128,15 +128,25 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;; TEST (jmc-find "jmpylint") => 
 
 
-
-(defun jmc-nose-current (&optional curfunc)
+(defun jmc-is-testfunc (fname)
+  t) 
+;; (split-string context "\\.")
+(defun jmc-testfunc-at-point (&optional curfunc)
   "Current Python test function, or nil."
-  (let ((context (python-current-defun)))
-    (if context
+  (let ((context 	(python-current-defun)))
+    (when context
       (let* ((context	(substring-no-properties context))
-	     (outername	(car (split-string context "\\."))))
-	(unless (eq nil (string-match-p "^test" (downcase outername)))
-	  outername)))))
+	     (parts	(split-string context "\\."))
+	     (funcname	(car (last parts))))
+	(if (string-match-p "^test" funcname)
+	    (format "geopoi.%s" context)))))) ;; XXXXX
+    
+;;;   (let ((context (python-current-defun)))
+;;;     (if context
+;;;       (let* ((context	(substring-no-properties context))
+;;; 	     (outername	(car (split-string context "\\."))))
+;;; 	(unless (eq nil (string-match-p "^test" (downcase outername)))
+;;; 	  outername)))))
 ;; (global-set-key (kbd "<kp-home>") (lambda () (interactive) (message (jmc-nose-current))))
 
 ;; .................................................. interactive
@@ -239,15 +249,38 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PYTHON
 
-(defun jmc-py-run ()
-  "Run this file using 'python'."
-  (interactive)
-  (jmc-make (concat "python " (buffer-file-name))))
+;; X: local?
+(set-variable 'jmc-python-command python-python-command)
+(set-variable 'jmc-python-command "/home/johnm/src/geodelic/bin/python")
 
-;; (defun jmc-python-hook ()
-;;    (define-key python-mode-map [kp-enter] 'jmc-py-test-fast)
-;;    (define-key python-mode-map [kp-add] 'jmc-make-test))
-;; (add-hook 'python-mode-hook 'jmc-python-hook)
+(defun jmc-py-run ()
+  "Syntax check this Python source (run this file using 'python')"
+  (interactive)
+  (jmc-make (format "%s %s" jmc-python-command (buffer-file-name))))
+
+; XXX:
+(defun jmc-django-test (testname)
+  "Run Django's 'manage.py test' on a file or single class."
+  (interactive)
+  (jmc-make 
+   (format "cd %s ; bin/run_tests %s"
+	   project-dir
+	   testname)))
+
+(defun jmc-django-test-function ()
+  (interactive)
+  (let ((testfunc (jmc-testfunc-at-point)))
+    (if testfunc
+	(jmc-django-test testfunc))))
+	
+(defun jmc-django-restart ()
+  "Restart Django"
+  (interactive)
+  (jmc-make (format "cd %s ; make -C johnm restart" "/home/johnm/src/geodelic")))
+
+(defun jmc-django-test-thisclass ()
+  (interactive)
+  (jmc-django-test (jmc-nose-current)))
 
 
 
@@ -275,8 +308,6 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
   (interactive)
   (save-some-buffers t)
   (recompile))
-
-
 
 (defun jmc-make-fast ()
   "Compile and test quickly, using 'make test-fast'"
@@ -324,7 +355,14 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 
 
+(defun jmc-pychecker (&optional switches args)
+  (interactive)
+  (jmc-make 
+   (format "pychecker --stdlib --unreachable --quiet %s" (buffer-file-name))))
+;; (define-key python-mode-map [kp-home] 'jmc-pychecker)
 
+
+  
 
 (provide 'jmcompile)
 
@@ -360,7 +398,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 -v	verbose
 --stop	stop after first error/failure
 ")
-;; (setq jmc-nose-switches "-sv --stop")
+;; (setq jmc-nose-switches "-sv --stop --nologcapture")
 ;; (setq jmc-nose-switches "-sv")
 
 (defcustom jmc-nose-thisfunc-switches	"%s:%s"
@@ -448,6 +486,23 @@ XX: assumes in same directory."
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HACKS
 
+(defun tags-search-python-test (regexp)
+  "Search through Python test files for REGEXP."
+  (interactive "sTags search for test (regexp): ")
+  (if (and (equal regexp "")
+	   (eq (car tags-loop-scan) 're-search-forward)
+	   (null tags-loop-operate))
+      ;; Continue last tags-search as if by M-,.
+      (tags-loop-continue nil)
+    (setq tags-loop-scan `(re-search-forward ',regexp nil t)
+	  tags-loop-operate nil)
+    (tags-loop-continue (or file-list-form t))))
+
+;; Relationship
+
+(global-set-key (kbd "M-t") 'grep-find-python-test)
+
+
 (when nil
   (defun jmc-py-thing-at-point ()
     (interactive)
@@ -513,3 +568,24 @@ current (code) buffer."
 (when nil
   (global-set-key [C-kp-subtract] 'jmc-py-copyarg)
   (global-set-key [kp-right] 'jmc-insert-goodvalue))
+
+
+;;  (jmc-make (format "cd %s ; bin/pctl restart app" "/home/johnm/src/geodelic")))
+;; (define-key python-mode-map [kp-add]  'jmc-django-test-function)
+;;     (format "cd %s ; bin/run_tests %s 2>&1 | egrep -v '^(Install|Creat|\\+)'"
+
+;; (defun jmc-nose-current-class (&optional curfunc)
+;;   "Current Python test class, or nil."
+;;   (let ((context (python-current-defun)))
+;;     (if context
+;;       (let* ((context	(substring-no-properties context))
+;; 	     (outername	(car (split-string context "\\."))))
+;; 	(unless (eq nil (string-match-p "^test" (downcase outername)))
+;; 	  outername)))))
+
+;; (defun jmc-python-hook ()
+;;    (define-key python-mode-map [kp-enter] 'jmc-py-test-fast)
+;;    (define-key python-mode-map [kp-add] 'jmc-make-test))
+;; (add-hook 'python-mode-hook 'jmc-python-hook)
+
+

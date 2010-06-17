@@ -10,6 +10,8 @@
     (global-set-key [C-kp-end] 'jmc-project-set)
     (global-set-key [C-kp-down] 'jmc-project-set-test-path)))
 
+;;(global-set-key [kp-1] 'jmc-project-open-code)
+;;(global-set-key [C-kp-1] 'jmc-project-set)
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PROJECT
 
@@ -37,8 +39,7 @@
 (defun jmc-project-set-test-path (&optional path)
   ""
   (interactive)
-  (setq jmc-project-source-path nil
-	jmc-project-test-path (or path (buffer-file-name))))
+  (setq jmc-project-test-path (or path (buffer-file-name))))
 
 (defun jmc-project-find (name)
   "Open buffer, or open file."
@@ -54,13 +55,12 @@
     (jmc-project-source-path	jmc-project-source-path)
     (jmc-project-name    	(format "%s.py" jmc-project-name)))))
 
-;; XX
 (defun jmc-project-open-test ()
   (interactive)
   (jmc-project-find
    (cond 
     (jmc-project-test-path	jmc-project-test-path)
-    (jmc-project-name    	(format "test/test_%s.py" jmc-project-name)))))
+    (jmc-project-source-dir    	(format "%s/tests.py" jmc-project-source-dir)))))
 
 (defun jmc-project-open-spec ()
   (interactive)
