@@ -251,7 +251,8 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 ;; X: local?
 (set-variable 'jmc-python-command python-python-command)
-(set-variable 'jmc-python-command "/home/johnm/src/geodelic/bin/python")
+(set-variable 'jmc-python-command 
+	      (format "%s/bin/python" project-dir))
 
 (defun jmc-py-run ()
   "Syntax check this Python source (run this file using 'python')"
@@ -276,7 +277,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 (defun jmc-django-restart ()
   "Restart Django"
   (interactive)
-  (jmc-make (format "cd %s ; make -C johnm restart" "/home/johnm/src/geodelic")))
+  (jmc-make (format "cd %s ; make -C johnm restart" project-dir)))
 
 (defun jmc-django-test-thisclass ()
   (interactive)
@@ -569,10 +570,6 @@ current (code) buffer."
   (global-set-key [C-kp-subtract] 'jmc-py-copyarg)
   (global-set-key [kp-right] 'jmc-insert-goodvalue))
 
-
-;;  (jmc-make (format "cd %s ; bin/pctl restart app" "/home/johnm/src/geodelic")))
-;; (define-key python-mode-map [kp-add]  'jmc-django-test-function)
-;;     (format "cd %s ; bin/run_tests %s 2>&1 | egrep -v '^(Install|Creat|\\+)'"
 
 ;; (defun jmc-nose-current-class (&optional curfunc)
 ;;   "Current Python test class, or nil."
