@@ -142,7 +142,7 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 	     (funcname	(car (last parts))))
 	(cond 
 	 ((string-match-p "^test" funcname)	    context)
-	 ((string-match-p "^/test" srcpath)	    context)
+	 ((string-match-p "/test" srcpath)	    context)
 	 (t					    nil))))))
 
 ;; (jmc-testfunc-at-point "Zoot.testZoot") => "Zoot.testZoot"
@@ -150,9 +150,26 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;; (jmc-testfunc-at-point "zoot") => nil
 ;; (jmc-testfunc-at-point "zoot" "/tests.py") => "zoot"
 
+(defun jmc-testclass-at-point (&optional context srcpath)
+  (let ((testfunc (jmc-testfunc-at-point context srcpath)))
+    (if testfunc
+	(let ((parts (split-string testfunc "\\.")))
+	  (if (> (length parts) 1)
+	      (combine-and-quote-strings
+	       (butlast parts)
+	       ".")
+	    testfunc)))))
+
+;; (jmc-testclass-at-point "ace.Zoot.testZoot") => "ace.Zoot"
+;; (jmc-testclass-at-point "ace" "/test.py") => "ace"
+
 (when nil
-  (global-set-key (kbd "<kp-divide>") 
-		  '(lambda () (interactive) (message "testfunc: %s" (jmc-testfunc-at-point)))))
+  (global-set-key 
+   (kbd "<kp-divide>") 
+   '(lambda () (interactive) 
+      (message 
+       "zoot %s"
+       (jmc-testfunc-at-point))))
 
 ;; .................................................. interactive
 
@@ -264,23 +281,26 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
   (interactive)
   (jmc-make (format "%s %s" jmc-python-command (buffer-file-name))))
 
-; XXX:
 
+;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PROJECT XX
+
+; XXX:
 (defun project-test-helper (srcpath testname)
   (if (string-match "geodelic/server/apps/\\(.+?\\)/tests.py" srcpath)
-      (format "%s.%s" 
+      (format "%s%s" 
 	      (match-string-no-properties 1 srcpath)
-	      testname)
+	      (if testname (concat "." testname) ""))
     testname))
 
 (defun project-active (srcpath)
   (string-match project-dir srcpath))	; XX: absdir
-  
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: DJANGO
 
 (defun jmc-django-test (testpath testname)
   "Run Django's 'manage.py test' on a file or single class."
   (interactive)
-  (message
+  (jmc-make
    (format "cd %s ; bin/run_tests %s" ;; XXXX
 	   project-dir
 	   (project-test-helper testpath testname))))
@@ -293,10 +313,13 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 (defun jmc-django-test-class ()
   (interactive)
-  (let ((testfunc (jmc-testfunc-at-point)))
-    (if testfunc
-	(jmc-django-test buffer-file-name (car (split-string testfunc "\\."))))))
+  (let ((testclass (jmc-testclass-at-point)))
+    (if testclass
+	(jmc-django-test buffer-file-name testclass))))
 
+(defun jmc-django-test-file ()
+  (interactive)
+  (jmc-django-test buffer-file-name nil))
 	
 (defun jmc-django-restart ()
   "Restart Django"
