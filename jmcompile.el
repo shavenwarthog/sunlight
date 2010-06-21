@@ -128,26 +128,31 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;; TEST (jmc-find "jmpylint") => 
 
 
-(defun jmc-is-testfunc (fname)
-  t) 
+;; (defun jmc-is-testfunc (fname)
+;;   t) 
 ;; (split-string context "\\.")
-(defun jmc-testfunc-at-point (&optional curfunc)
-  "Current Python test function, or nil."
-  (let ((context 	(python-current-defun)))
+
+(defun jmc-testfunc-at-point (&optional context srcpath)
+  "Current Python test function, class, or nil."
+  (let ((context 	(or context (python-current-defun)))
+	(srcpath	(or srcpath buffer-file-name)))
     (when context
       (let* ((context	(substring-no-properties context))
 	     (parts	(split-string context "\\."))
 	     (funcname	(car (last parts))))
-	(if (string-match-p "^test" funcname)
-	    (format "geopoi.%s" context)))))) ;; XXXXX
-    
-;;;   (let ((context (python-current-defun)))
-;;;     (if context
-;;;       (let* ((context	(substring-no-properties context))
-;;; 	     (outername	(car (split-string context "\\."))))
-;;; 	(unless (eq nil (string-match-p "^test" (downcase outername)))
-;;; 	  outername)))))
-;; (global-set-key (kbd "<kp-home>") (lambda () (interactive) (message (jmc-nose-current))))
+	(cond 
+	 ((string-match-p "^test" funcname)	    context)
+	 ((string-match-p "^/test" srcpath)	    context)
+	 (t					    nil))))))
+
+;; (jmc-testfunc-at-point "Zoot.testZoot") => "Zoot.testZoot"
+;; (jmc-testfunc-at-point "testZoot") => "testZoot"
+;; (jmc-testfunc-at-point "zoot") => nil
+;; (jmc-testfunc-at-point "zoot" "/tests.py") => "zoot"
+
+(when nil
+  (global-set-key (kbd "<kp-divide>") 
+		  '(lambda () (interactive) (message "testfunc: %s" (jmc-testfunc-at-point)))))
 
 ;; .................................................. interactive
 
@@ -177,7 +182,7 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 (defun jmc-nose-thisfunc (&optional args)
   "Run the test function under the cursor, or all tests in file, or all tests in related file."
   (interactive)
-  (let ((testfunc (jmc-nose-current)))
+  (let ((testfunc (jmc-testfunc-at-point)))
     (cond 
      (testfunc				; function under cursor
       (jmc-nose (or args "")
@@ -260,19 +265,38 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
   (jmc-make (format "%s %s" jmc-python-command (buffer-file-name))))
 
 ; XXX:
-(defun jmc-django-test (testname)
+
+(defun project-test-helper (srcpath testname)
+  (if (string-match "geodelic/server/apps/\\(.+?\\)/tests.py" srcpath)
+      (format "%s.%s" 
+	      (match-string-no-properties 1 srcpath)
+	      testname)
+    testname))
+
+(defun project-active (srcpath)
+  (string-match project-dir srcpath))	; XX: absdir
+  
+
+(defun jmc-django-test (testpath testname)
   "Run Django's 'manage.py test' on a file or single class."
   (interactive)
-  (jmc-make 
-   (format "cd %s ; bin/run_tests %s"
+  (message
+   (format "cd %s ; bin/run_tests %s" ;; XXXX
 	   project-dir
-	   testname)))
+	   (project-test-helper testpath testname))))
 
 (defun jmc-django-test-function ()
   (interactive)
   (let ((testfunc (jmc-testfunc-at-point)))
     (if testfunc
-	(jmc-django-test testfunc))))
+	(jmc-django-test buffer-file-name testfunc))))
+
+(defun jmc-django-test-class ()
+  (interactive)
+  (let ((testfunc (jmc-testfunc-at-point)))
+    (if testfunc
+	(jmc-django-test buffer-file-name (car (split-string testfunc "\\."))))))
+
 	
 (defun jmc-django-restart ()
   "Restart Django"
@@ -281,7 +305,19 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 (defun jmc-django-test-thisclass ()
   (interactive)
-  (jmc-django-test (jmc-nose-current)))
+  (jmc-django-test buffer-file-name (jmc-nose-current)))
+
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PER-PROJECT
+
+(defun jmc-custom (projectfunc generalfunc)
+  (interactive)
+  (message "custom: %s" (project-active buffer-file-name))
+  (funcall (if (project-active buffer-file-name) projectfunc generalfunc)))
+
+;; (jmc-custom nil '(lambda () (message "woohoo"))) => "woohoo"
+;;  (funcall (if (project-active) projectfunc generalfunc)))
+
 
 
 
@@ -361,6 +397,12 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
   (jmc-make 
    (format "pychecker --stdlib --unreachable --quiet %s" (buffer-file-name))))
 ;; (define-key python-mode-map [kp-home] 'jmc-pychecker)
+
+(defun jmc-pyflakes (&optional switches args)
+  (interactive)
+  (jmc-make 
+   (format "pyflakes %s" (buffer-file-name))))
+;; (define-key python-mode-map [kp-home] 'jmc-pyflakes)
 
 
   
