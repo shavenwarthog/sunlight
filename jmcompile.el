@@ -286,7 +286,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 ; XXX:
 (defun project-test-helper (srcpath testname)
-  (if (string-match "geodelic/server/apps/\\(.+?\\)/tests.py" srcpath)
+  (if (string-match "[a-z]+/server/apps/\\(.+?\\)/tests.py" srcpath)
       (format "%s%s" 
 	      (match-string-no-properties 1 srcpath)
 	      (if testname (concat "." testname) ""))

@@ -1,2 +1,5 @@
 *~
 *.pyc
+TAGS
+*.tags
+err-gd.txt
