@@ -1,0 +1,4 @@
+RECENT_PY := $(shell ls -1t *.py | awk '/fn_/{next} {print;exit}')
+
+test:
+	./$(RECENT_PY)

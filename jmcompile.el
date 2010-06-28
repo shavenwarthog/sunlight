@@ -298,6 +298,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: GENERAL
 
+(defalias 'jmc-next 'next-error)
 ;; (defun jmc-next ()
 ;;   "Jump to the next message.
 ;; From compilation (next-error), flymake-goto-next-error, or XX.
