@@ -80,6 +80,7 @@ Run function 'test'.
 
 (defcustom jmc-nose-postproc "" "Post-processor, if any.")
 (setq jmc-nose-postproc	" 2>&1 | ~/bin/simplifyp -")
+(setq jmc-nose-postproc	nil)
 ;; (setq jmc-nose-postproc	nil)
 ;; (setq jmc-nose-program "/usr/bin/nosetests")
 
@@ -298,6 +299,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: GENERAL
 
+(defalias 'jmc-next 'next-error)
 ;; (defun jmc-next ()
 ;;   "Jump to the next message.
 ;; From compilation (next-error), flymake-goto-next-error, or XX.
