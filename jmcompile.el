@@ -169,7 +169,7 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
    '(lambda () (interactive) 
       (message 
        "zoot %s"
-       (jmc-testfunc-at-point))))
+       (jmc-testfunc-at-point)))))
 
 ;; .................................................. interactive
 

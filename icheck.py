@@ -1,7 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
+'''
+icheck.py -- run checker when Python source file changes
+'''
 
-import logging, os, sys
+import logging, os, subprocess, sys, time
 import pyinotify
 
 logging.basicConfig(
@@ -12,9 +15,25 @@ logging.basicConfig(
 def modify_cb(event):
     print 'ding',event .__dict__
 
+def run_test(path):
+    logging.debug('modified %s', path)
+    if '/geopoi/' not in path:
+        logging.debug('(not geopoi, ignoring)')
+        return
+    cmd = 'bin/run_tests geopoi'
+    logging.debug('=> %s', cmd)
+    start_tm = time.time()
+    proc = subprocess.Popen(
+        'cd %s; %s' % ('~/src/geodelic', cmd), 
+        shell=True, stderr=subprocess.STDOUT,
+        )
+    if proc.wait():
+        logging.error('=> %s', proc.returncode)
+    logging.debug('completed in %.2f seconds', time.time()-start_tm)
+    # logging.debug( proc.stdout.read() )
+
+
 class RunTest(object):
-    def run_test(self, path):
-        logging.debug('test: %s', path)
 
     def check_path(self, path):
         # skip temp files from Emacs, Flynote, and Vim
@@ -27,7 +46,7 @@ class RunTest(object):
     def __call__(self, event):
         path = os.path.abspath(os.path.join(event.path, event.name))
         if self.check_path(path):
-            self.run_test(path)
+            run_test(path)
 
 def main():
     wm = pyinotify.WatchManager()
