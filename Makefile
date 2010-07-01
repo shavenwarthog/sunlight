@@ -2,6 +2,8 @@ RECENT_PY := $(shell ls -1t *.py | egrep -v _flymake | head -1)
 
 all:
 
+xref:
+	./xref.py -f - ex-xref.py
 
 .PHONY: elisp-doc.html
 elisp-doc.html:
@@ -9,9 +11,9 @@ elisp-doc.html:
 	head -100 $@ 
 
 # --regex-swine=/^def[ \t]*([a-zA-Z0-9_]+)/\1/d,definition/
-xref:
-	ctags --version | head -1
-	ctags −−langdef=pycall zoot.py
+# xref:
+# 	ctags --version | head -1
+# 	ctags −−langdef=pycall zoot.py
 #  --langmap=pycall:.py	\
 # 	'--regex-pycall=/([a-zA-Z0-9_]+)\(/\1/c,call/'	\
 # 	zoot.py

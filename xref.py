@@ -55,13 +55,15 @@ class TagsFile(list):
 def main(argv):
     parser = optparse.OptionParser()
     parser.add_option("-f", "--file", dest="filename",
-                      help="write report to FILE", metavar="FILE")
+                      help="write report to FILE", metavar="FILE", default='xref.dat',
+                      )
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose", default=False,
                       )
 
     (options, paths) = parser.parse_args()
-
+    if options.filename == '-':
+        options.filename = '/dev/stdout'
     defpat = re.compile(
         '(def|class)\s+(\w+)',
         )

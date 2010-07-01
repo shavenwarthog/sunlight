@@ -301,7 +301,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
   "Run Django's 'manage.py test' on a file or single class."
   (interactive)
   (jmc-make
-   (format "cd %s ; bin/run_tests %s" ;; XXXX
+   (format "cd %s ; bin/run_tests %s | egrep -v '^(Destroy|Creat|Install)'" ;; XXX
 	   project-dir
 	   (project-test-helper testpath testname))))
 

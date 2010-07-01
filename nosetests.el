@@ -1,14 +1,10 @@
+;; nosetests.el -- trim fat from post-test report
+
 (require 'compile)
+(defvar nosetests-hide t "Hide boring things")
+;; (setq nosetests-hide t)
 
-;; coverage:
-;;	nosetests -sv --with-coverage --cover-package=mod1.mod2.zoot test_zoot.py
-;;      ==>
-;; Name         Stmts   Exec  Cover   Missing
-;; mod1.mod2.zoot  73     42    57%   25, 37, 40, 43, 58, 116, 155-168
-
-
-(defvar nosetests-hide nil "Hide boring things")
-
+;; ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 (defun nosetests-current ()
   "Return name of unit test on this line or above.
@@ -26,6 +22,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   (when (re-search-backward "^ *File \"\\(.+?\\)\"" nil nil)
     (match-string-no-properties 1)))
 
+
 (defun nosetests-hide-match (matchnum)
   ""
   (put-text-property (match-beginning matchnum)
@@ -33,9 +30,11 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 		     'invisible
 		     'nosetests))
 
+
 (defun nosetests-hide-region (pos1 pos2)
   ""
   (put-text-property pos1 pos2 'invisible 'nosetests))
+
 
 (defun nosetests-jump-exception (&rest unused)
   "Set point to first line of exception, after the traceback."
@@ -45,20 +44,18 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
     (re-search-forward "^[^ ]" nil t)))
   
 
-;; (defadvice compilation-start (after command 
-;; 				    &optional mode name-function highlight-regexp)
-;;   (nosetests-jump-exception))
-;; (global-set-key [kp-home] 'nosetests-jump-exception)
+(defun nosetests-hide-matching-lines (pat &rest numlines)
+  "Scan through buffer, hiding lines in which the pattern matches."
+  (let ((numlines (or numlines 1)))
+    (goto-char (point-min))
+    (while (re-search-forward pat nil t)
+      (nosetests-hide-region
+       (line-beginning-position)
+       (+ numlines (line-end-position))))))
 
-
-(defun nosetests-hide-matching-lines (pat)
-  (goto-char (point-min))
-  (while (re-search-forward pat nil t)
-    (nosetests-hide-region (line-beginning-position) (1+ (line-end-position)))))
-
-(defun nosetests-mapc-matches (buffer pat func)
+(defun nosetests-mapc-matches (pat func &optional buffer)
   (save-excursion
-    (with-current-buffer buffer
+    (with-current-buffer (or buffer (current-buffer))
       (goto-char (point-max))
       (while (re-search-backward pat nil t)
       	(funcall func)))))
@@ -66,16 +63,27 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 (defun nosetests-delete-line ()
   (delete-region (line-beginning-position) (line-beginning-position 2)))
 
-;; TODO: disable next-error and hide instead of fully deleting
-(defun nosetests-disable-boring ()    
-  (nosetests-mapc-matches 
-   (current-buffer) 
-   "File .+ apply_clear_and_verify"
-   'nosetests-delete-line)
-  (nosetests-mapc-matches 
-   (current-buffer) 
-   "File .+ /eggs/"
-   'nosetests-delete-line))
+
+;; ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+(defun nosetests-h-boring ()
+  (interactive)
+  (nosetests-mapc-matches
+   "\\(.+/home.+?django/.+\\)"
+   ))
+;; (global-set-key (kbd "<kp-up>") 'nosetests-h-boring)
+   
+
+;; ;; TODO: disable next-error and hide instead of fully deleting
+;; (defun nosetests-disable-boring ()    
+;;   (nosetests-mapc-matches 
+;;    (current-buffer) 
+;;    "File .+ apply_clear_and_verify"
+;;    'nosetests-delete-line)
+;;   (nosetests-mapc-matches 
+;;    (current-buffer) 
+;;    "File .+ /eggs/"
+;;    'nosetests-delete-line))
 
 ;; (global-set-key 
 ;;  [kp-multiply]
@@ -85,6 +93,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 
 
+;; X: port to mapc-matches
 (defun nosetests-hide-all-matches (buffer pat matchnum)
   (save-excursion
     (with-current-buffer buffer
@@ -93,18 +102,20 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
       	(nosetests-hide-match matchnum)))))
 
 (defun nosetests-hide-path-prefixes (buffer)
-  (nosetests-hide-all-matches buffer "File .\\(/home/.+?/src/\\)" 1)
+  (nosetests-hide-all-matches buffer "File .\\(/home/.+?/src/.+?\\)" 1)
   (nosetests-hide-all-matches buffer "File .\\(.+?/\\)egg/" 1)
   (nosetests-hide-all-matches buffer "File .+\\(, line [0-9]+\\)" 1))
 
-(defun nosetests-hide-paths (buffer)
-  (nosetests-hide-all-matches 
-   buffer 
-   (concat 
-    " *File .+eggs/\\("
-    "fudge\\|nose"
-    "\\).+\n")
-   0))
+(defun nosetests-hide-boring (buffer)
+  )
+;; (defun nosetests-hide-paths (buffer)
+;;   (nosetests-hide-all-matches 
+;;    buffer 
+;;    (concat 
+;;     " *File .+eggs/\\("
+;;     "fudge\\|nose"
+;;     "\\).+\n")
+;;    0))
 
 
 (defun string-starts (long short)
@@ -121,12 +132,12 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 ;; (nosetests-path-boringp "zoot.py") => nil
 ;; (nosetests-path-boringp "~/eggs/nose-0/case.py") => 1
 
-(defun nosetests-hide-boring ()
-  (goto-char (point-max))
-  (while (nosetests-current-filepath)
-    (nosetests-hide-region
-     (line-beginning-position)
-     (line-beginning-position 2))))
+;; (defun nosetests-hide-boring ()
+;;   (goto-char (point-max))
+;;   (while (nosetests-current-filepath)
+;;     (nosetests-hide-region
+;;      (line-beginning-position)
+;;      (line-beginning-position 2))))
 
 ;; (defun nosetests-delete-boring ()
 ;;   (goto-char (point-max))
@@ -135,13 +146,13 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 (defvar nosetests-hide-hooks nil "woo")
 (add-hook 'nosetests-hide-hooks 'nosetests-hide-boring)
 
-(defun NEW-nosetests-hide-decorations (&optional buffer status)
-  (interactive)
-  (let ((buffer (or buffer (current-buffer))))
-    ;; (nosetests-hide-projpaths buffer)
-    (save-excursion
-      (with-current-buffer buffer
-	(run-hooks 'nosetests-hide-hooks)))))
+;; (defun NEW-nosetests-hide-decorations (&optional buffer status)
+;;   (interactive)
+;;   (let ((buffer (or buffer (current-buffer))))
+;;     ;; (nosetests-hide-projpaths buffer)
+;;     (save-excursion
+;;       (with-current-buffer buffer
+;; 	(run-hooks 'nosetests-hide-hooks)))))
 
 ;; run_tests harness:
 (defun nosetests-custom ()
@@ -158,40 +169,53 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 
 (defun nosetests-hide-decorations (&optional buffer status)
-  "Hide boilerplate, leaving print output, traceback, and exception details.
-"
+  "Hide boilerplate, leaving print output, traceback, and exception details."
   (interactive)
   (when nosetests-hide
     (let ((buffer (or buffer (current-buffer))))
-      ;; (nosetests-hide-projpaths buffer)
-      (save-excursion
-	(with-current-buffer buffer
-	  (nosetests-custom)
-	  ;; header:
-	  (goto-char (point-min))
-	  (when (re-search-forward " \\.\\.\\. " nil t)
-	    (nosetests-hide-region (point-min) (line-beginning-position)))
-	  (goto-char (point-min))
-	  (when (re-search-forward "^\\(ERROR\\|FAIL\\):" nil t)
-	    (nosetests-hide-region (point-min) (line-beginning-position)))
-	  ;; footer:
-	  (nosetests-hide-all-matching-lines "^Ran ")
-	  (nosetests-hide-all-matching-lines "^FAILED ")
-	  (nosetests-hide-all-matching-lines " exited ")
-	  (nosetests-hide-all-matching-lines "^Compilation finished ")
-	  (nosetests-hide-all-matching-lines " \\.\\.\\. ")
-	  ;; traceback:
-	  (nosetests-hide-path-prefixes buffer)	;; boring parts of file paths
-	  (nosetests-hide-paths buffer)	;; entire paths (keep code)
-	  ;; nonverbose: row of dots/Error/Fatal:
-	  (when (re-search-forward "^[.EF]+$" nil t)
-	    (nosetests-hide-region (point-min) (line-beginning-position)))
-	  ;; X deletions:
-	  (nosetests-disable-boring)
-	  )))))
+      (with-current-buffer buffer
+	;; header:
+	(goto-char (point-min))
+	(when (re-search-forward "^=====.+$" nil t)
+	  (nosetests-hide-region (point-min) (line-beginning-position)))))))
+      
+;; (defun nosetests-hide-decorations (&optional buffer status)
+;;   "Hide boilerplate, leaving print output, traceback, and exception details.
+;; "
+;;   (interactive)
+;;   (when nosetests-hide
+;;     (let ((buffer (or buffer (current-buffer))))
+;;       ;; (nosetests-hide-projpaths buffer)
+;;       (save-excursion
+;; 	(with-current-buffer buffer
+;; 	  (nosetests-custom)
+;; 	  ;; header:
+;; 	  (when nil
+;; 	    (goto-char (point-min))
+;; 	    (when (re-search-forward " \\.\\.\\. " nil t)
+;; 	      (nosetests-hide-region (point-min) (line-beginning-position))))
+;; 	  (when nil
+;; 	    (goto-char (point-min))
+;; 	    (when (re-search-forward "^\\(ERROR\\|FAIL\\):" nil t)
+;; 	      (nosetests-hide-region (point-min) (line-beginning-position))))
+;; 	  ;; footer:
+;; 	  (nosetests-hide-all-matching-lines "^Ran ")
+;; 	  (nosetests-hide-all-matching-lines "^FAILED ")
+;; 	  (nosetests-hide-all-matching-lines " exited ")
+;; 	  (nosetests-hide-all-matching-lines "^Compilation finished ")
+;; 	  (nosetests-hide-all-matching-lines " \\.\\.\\. ")
+;; 	  ;; traceback:
+;; 	  (nosetests-hide-path-prefixes buffer)	;; boring parts of file paths
+;; 	  (nosetests-hide-paths buffer)	;; entire paths (keep code)
+;; 	  ;; nonverbose: row of dots/Error/Fatal:
+;; 	  (when (re-search-forward "^[.EF]+$" nil t)
+;; 	    (nosetests-hide-region (point-min) (line-beginning-position)))
+;; 	  ;; X deletions:
+;; 	  (nosetests-disable-boring)
+;; 	  )))))
 (when t
-  (global-set-key [kp-decimal] 'nosetests-hide-decorations)
-  (global-set-key [C-kp-decimal] 'nosetests-unhide))
+  (global-set-key [kp-home] 'nosetests-hide-decorations)
+  (global-set-key [C-kp-home] 'nosetests-unhide))
 
 
 
