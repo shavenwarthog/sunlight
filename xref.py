@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/home/johnm/local/bin/python2.6
 
 '''
 xref.py -- postprocess Etags database into call graph
@@ -28,7 +28,21 @@ def test_enum_pos():
         [(0, 'tasty', 0, 6), (1, 'beer', 6, 11)],
         )
 
-IGNORELIST = set('format int len range reduce set super type __init__'.split())
+
+def callname_shouldskip(callname):
+    IGNORELIST = set('format int len range reduce set super type __init__'.split())
+    if callname in IGNORELIST:
+        return True
+    magicpat = re.compile('^__[^_]+__$')
+    if magicpat.match(callname):
+        return True
+    return False
+
+def test_callname_shouldskip():
+    eq( callname_shouldskip('__argh__'), True )
+    eq( callname_shouldskip('beer'), False )
+
+
 
 class TagsFile(list):
     def append(self, path, tagdef, tagname, lineno, offset):
@@ -65,7 +79,8 @@ def main(argv):
     if options.filename == '-':
         options.filename = '/dev/stdout'
     defpat = re.compile(
-        '(def|class)\s+(\w+)',
+        '^\s* (def|class)\s+(\w+)',
+        re.VERBOSE,
         )
     callpat = re.compile(
         # '(%s)\s*(\(.*\)?)',
@@ -91,18 +106,18 @@ def main(argv):
         for num,line,begpos,_ in enum_pos(source.split('\n')):
             if options.verbose:
                 print '%2d %3d %s' % (num+1, begpos, line)
-            m = defpat.search(line)
+            m = defpat.match(line) # XX
             if m:
                 in_def = m.group(2), num+1, begpos
                 continue
             for m in callpat.finditer(line):
-                calls = m.group(1)
-                if calls in IGNORELIST:
+                callname = m.group(1)
+                if callname_shouldskip(callname):
                     continue
                 if not in_def:
                     continue    # XXX?
                 if options.verbose:
-                    print '- %s: calls %s%s' % (in_def[0], calls, '()')
+                    print '- %s: callname %s%s' % (in_def[0], callname, '()')
                 tagsf.append(
                     path=path,
                     tagdef=line,
