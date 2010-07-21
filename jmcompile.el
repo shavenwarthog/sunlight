@@ -33,18 +33,19 @@
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: UTILS
 
 
-(defun jmc-has-word-p (word)
-  "True if WORD found in next few lines."
-  (not (eq nil (word-search-forward word 1000 t))))
-
+;; (defun jmc-has-word-p (word)
+;;   "True if WORD found in next few lines."
+;;   (not (eq nil (word-search-forward word 1000 t))))
 
 (defun jmc-py-has-tests-p ()
   "Return true if current buffer contains unit tests.
 IE: search for 'nose' or 'unittest' imports."
   (save-excursion
     (goto-char 0)
-    (or (jmc-has-word-p "nose") (jmc-has-word-p "unittest"))))
+    (re-search-forward "\\(nose\\|unittest\\|def test\\)" nil t)))
 
+;; (global-set-key (kbd "<C-kp-home>") '(lambda () (interactive)
+;; (message "ding: %s" (jmc-py-has-tests-p))))
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: EMACS LISP
 
@@ -90,10 +91,7 @@ Run function 'test'.
   "Run 'nosetests' external process.
 Uses global switches 'jmc-nose-switches', then switches and args passed in.
 "
-  (let ((nose-path 
-	 ;; (if (functionp jmc-nose-program)
-	 ;;     (funcall jmc-nose-program)
-	 (jmc-nose-program))
+  (let ((nose-path	(jmc-nose-program))
 	(nose-exclude
 	 (if (stringp jmc-nose-exclude)
 	     (format "--exclude='%s'" jmc-nose-exclude))))
@@ -286,11 +284,13 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 ; XXX:
 (defun project-test-helper (srcpath testname)
-  (if (string-match "[a-z]+/server/apps/\\(.+?\\)/tests.py" srcpath)
+  (if (string-match "/apps/\\(.+?\\)/tests.py" srcpath)
       (format "%s%s" 
 	      (match-string-no-properties 1 srcpath)
 	      (if testname (concat "." testname) ""))
     testname))
+;;; (project-test-helper "beer/server/apps/geopoi/tests.py" "x") => "geopoi.x"
+;;; (project-test-helper "beer/openpub/apps/exp/tests.py" "x") => "exp.x"
 
 (defun project-active (srcpath)
   (string-match project-dir srcpath))	; XX: absdir
@@ -301,7 +301,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
   "Run Django's 'manage.py test' on a file or single class."
   (interactive)
   (jmc-make
-   (format "cd %s ; bin/run_tests %s | egrep -v '^(Destroy|Creat|Install)'" ;; XXX
+   (format "cd %s ; johnm/run_tests %s" ;; XXX
 	   project-dir
 	   (project-test-helper testpath testname))))
 
@@ -335,7 +335,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 (defun jmc-custom (projectfunc generalfunc)
   (interactive)
-  (message "custom: %s" (project-active buffer-file-name))
+  (message "custom: %s %s %s" (project-active buffer-file-name) projectfunc generalfunc)
   (funcall (if (project-active buffer-file-name) projectfunc generalfunc)))
 
 ;; (jmc-custom nil '(lambda () (message "woohoo"))) => "woohoo"
@@ -652,3 +652,67 @@ current (code) buffer."
 ;; (add-hook 'python-mode-hook 'jmc-python-hook)
 
 
+;; enter=redo, control-enter=test function, add=test class
+;;
+;; (defun jmc-use-django (&optional path)
+;;   nil)
+
+
+(defun jmc-key-setfunc ()
+  (interactive) 
+  (jmc-custom 'jmc-django-test-function 'jmc-nose-thisfunc))
+
+(defun jmc-key-testfile ()
+  (interactive)
+  (jmc-custom 'jmc-django-test-class
+	      '(lambda () (jmc-nose "" (buffer-file-name)))))
+
+(defun jmc-key-testdir ()
+  (interactive)
+  (jmc-nose "" (file-name-directory (buffer-file-name))))
+  
+(define-key python-mode-map [C-kp-enter] 'jmc-key-setfunc)
+(define-key python-mode-map [kp-add]	'jmc-key-testfile)
+
+(global-set-key 
+ [kp-multiply]
+ (lambda () (interactive) 
+   (if (string-match-p "/test" buffer-file-name)
+       (jmc-django-test-file)
+     (jmc-django-restart))))
+
+(defun jmc-hi-lock ()
+  (interactive)
+  (hi-lock-line-face-buffer "^\\s+logging.info+?(" 'hi-yellow)
+  (hi-lock-line-face-buffer "^\\s+logging.error+?(" 'hi-yellow))
+
+(defun project-which-app (&optional path)
+  (let ((path (or path buffer-file-name)))
+    (when (or (string-match "/\\(openpub\\)/" path)
+	      (string-match "/apps/\\(.+?\\)/" path))
+      (match-string-no-properties 1 path))))
+
+;; (project-which-app "zoot") => nil
+;; (project-which-app "/apps/beer") => nil
+;; (project-which-app "/apps/beer/yum.py") => "beer"
+;; (project-which-app "/openpub/apps/exp/beer.py") => "openpub"
+      
+(defun jmc-python-which-func ()
+  (let ((app (project-which-app)))
+    (when app
+      (format "%s %s" app (or (python-which-func) "<file>")))))
+
+(defun jmc-python-hook ()
+  (interactive)
+  (add-to-list 'which-func-functions 'jmc-python-which-func)
+  (jmc-hi-lock))
+
+(add-hook 'python-mode-hook 'jmc-python-hook)
+; (custom-add-option 'python-mode-hook 'jmc-python-hook)
+
+(when nil
+  (custom-add-option 
+   (lambda () (add-to-list 'which-func-functions 'jmc-python-which-func))))
+;;  (add-hook 'which-func-functions 'python-which-func nil t)
+
+  
