@@ -142,7 +142,6 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 	 ((string-match-p "^test" funcname)	    context)
 	 ((string-match-p "/test" srcpath)	    context)
 	 (t					    nil))))))
-
 ;; (jmc-testfunc-at-point "Zoot.testZoot") => "Zoot.testZoot"
 ;; (jmc-testfunc-at-point "testZoot") => "testZoot"
 ;; (jmc-testfunc-at-point "zoot") => nil
@@ -197,6 +196,7 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 (defun jmc-nose-thisfunc (&optional args)
   "Run the test function under the cursor, or all tests in file, or all tests in related file."
   (interactive)
+  blam
   (let ((testfunc (jmc-testfunc-at-point)))
     (cond 
      (testfunc				; function under cursor
@@ -674,12 +674,12 @@ current (code) buffer."
 (define-key python-mode-map [C-kp-enter] 'jmc-key-setfunc)
 (define-key python-mode-map [kp-add]	'jmc-key-testfile)
 
-(global-set-key 
- [kp-multiply]
- (lambda () (interactive) 
-   (if (string-match-p "/test" buffer-file-name)
-       (jmc-django-test-file)
-     (jmc-django-restart))))
+;; (global-set-key 
+;;  [kp-multiply]
+;;  (lambda () (interactive) 
+;;    (if (string-match-p "/test" buffer-file-name)
+;;        (jmc-django-test-file)
+;;      (jmc-django-restart))))
 
 (defun jmc-hi-lock ()
   (interactive)
