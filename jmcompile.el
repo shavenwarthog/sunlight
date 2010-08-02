@@ -32,6 +32,7 @@
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: UTILS
 
+(load "~/src/sunlight/jmc_python_pdb")	;XXX
 
 ;; (defun jmc-has-word-p (word)
 ;;   "True if WORD found in next few lines."
@@ -130,6 +131,20 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;;   t) 
 ;; (split-string context "\\.")
 
+(defun jmc-pdb-enabled-near-point ()
+  (save-excursion
+    (beginning-of-line -10)
+    (re-search-forward "^[^#]+set_trace" (line-end-position 20) 'noerror)))
+;; pdb.set_trace
+
+;; (local-set-key 
+;;  (kbd "<kp-home>") 
+;;  (lambda ()
+;;    (interactive)
+;;    (message "woo: %s" (jmc-pdb-enabled-near-point))))
+				   
+    
+  
 (defun jmc-testfunc-at-point (&optional context srcpath)
   "Current Python test function, class, or nil."
   (let ((context 	(or context (python-current-defun)))
@@ -160,13 +175,6 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;; (jmc-testclass-at-point "ace.Zoot.testZoot") => "ace.Zoot"
 ;; (jmc-testclass-at-point "ace" "/test.py") => "ace"
 
-(when nil
-  (global-set-key 
-   (kbd "<kp-divide>") 
-   '(lambda () (interactive) 
-      (message 
-       "zoot %s"
-       (jmc-testfunc-at-point)))))
 
 ;; .................................................. interactive
 
@@ -196,7 +204,6 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 (defun jmc-nose-thisfunc (&optional args)
   "Run the test function under the cursor, or all tests in file, or all tests in related file."
   (interactive)
-  blam
   (let ((testfunc (jmc-testfunc-at-point)))
     (cond 
      (testfunc				; function under cursor
@@ -231,42 +238,9 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 	    (nth 1 parts) 
 	    (nth 2 parts))))
 ;;
-;; (jmc-nose-module "/x/a/b/c.py") "a.b.c"
-
-(defun test () (interactive) (message (jmc-nose-module "/x/a/b/c.py")))
-(local-set-key [kp-enter] 'test)
+;; (jmc-nose-module "/x/a/b/c.py") => "a.b.c"
 
     
-  
-
-
-
-;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: AWESOME WM
-
-(defun jmc-awesome-reload-newest ()
-  (interactive)
-  (jmc-make "pkill -HUP -n awesome"))
-
-(defalias 'jmc-awesome-reload 'jmc-awesome-reload-newest)
-
-
-;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: WEB
-
-(defun jmc-reload-browser ()
-  "Save buffers, reload current Firefox page."
-  (interactive)
-  (require 'moz)
-  (save-some-buffers t)
-  (save-window-excursion
-    (with-temp-buffer
-      (insert "BrowserReload();")
-      (moz-send-defun))))
-
-
-(defun jmc-dotest-web ()
-  (jmc-reload-browser))
-
-
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PYTHON
 
 ;; X: local?
@@ -295,13 +269,26 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 (defun project-active (srcpath)
   (string-match project-dir srcpath))	; XX: absdir
 
+;; (project-active "beer") => nil
+;; (project-active "/home/johnm/src/geodelic/server/apps/geopoi/tests.py") => 0 XX
+
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: DJANGO
+;;
+;; use normal "unittest" framework, run tests via external "run_tests" script
+
+(set-variable 'jmc-django-restart-command "cd %s ; make -C johnm restart")
+(set-variable 'jmc-django-test-command "cd %s ; johnm/run_tests %s")
+
+(defun jmc-django-restart ()
+  "Restart Django"
+  (interactive)
+  (jmc-make (format jmc-django-restart-command project-dir)))
 
 (defun jmc-django-test (testpath testname)
   "Run Django's 'manage.py test' on a file or single class."
   (interactive)
   (jmc-make
-   (format "cd %s ; johnm/run_tests %s" ;; XXX
+   (format jmc-django-test-command
 	   project-dir
 	   (project-test-helper testpath testname))))
 
@@ -321,14 +308,9 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
   (interactive)
   (jmc-django-test buffer-file-name nil))
 	
-(defun jmc-django-restart ()
-  "Restart Django"
-  (interactive)
-  (jmc-make (format "cd %s ; make -C johnm restart" project-dir)))
-
-(defun jmc-django-test-thisclass ()
-  (interactive)
-  (jmc-django-test buffer-file-name (jmc-nose-current)))
+;; (defun jmc-django-test-class ()
+;;   (interactive)
+;;   (jmc-django-test buffer-file-name (jmc-nose-current)))
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PER-PROJECT
@@ -456,6 +438,8 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
       (apply-partially 'jmc-find "nosetests"))
   (defun jmc-nose-program ()
     (jmc-find "nosetests")))
+(defun jmc-nose-program ()
+  "/home/johnm/local/bin/nosetests")
 
 ;; (jmc-nose-program) => "nosetests"
 
@@ -499,58 +483,7 @@ XX: assumes in same directory."
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; REST/S5 SLIDES
 
-(when nil
-  (defun jmc-rst-export ()
-    (interactive)
-    (jmc-make "rst2s5 messageq.rst messageq.html"))
-  ;;   (jmc-make "rst2html messageq.rst > messageq.html"))
-  (defun jmc-rst-mode-hook ()
-    (define-key rst-mode-map [kp-enter] 'jmc-rst-export)))
-
-
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: Python Debugger (PDB/GUD)
-
-(defvar jmc-pdb-funcname nil "howdy")
-(defvar jmc-pdb-buffer nil "Buffer that contains test function to run PDB on.")
-
-(defun jmc-pdb ()
-  (interactive)
-  (save-some-buffers t)
-  (let* ((pdb_format 	"%s -s --pdb --pdb-failures %s:%s")
-	 (prog_path	(jmc-find "nosetests"))
-	 (srcname	(buffer-file-name jmc-pdb-buffer)))
-    (unless jmc-pdb-funcname
-      (jmc-pdb-setfunc-raw))
-    (when jmc-pdb-funcname
-      (pdb (format pdb_format prog_path srcname jmc-pdb-funcname)))))
-
-(defun jmc-pdb-setfunc-raw ()
-  (setq jmc-pdb-buffer	(current-buffer)
-	jmc-pdb-funcname (jmc-nose-current)))
-
-(defun jmc-pdb-setfunc ()
-  (interactive)
-  (message (jmc-pdb-setfunc-raw))
-  (jmc-pdb))
-
-(defun jmc-pdb-toggle ()
-  (interactive)
-  (beginning-of-line)
-  (if (looking-at "[^\n]*set_trace")
-      (progn
-	(beginning-of-line)
-	(if (re-search-forward " *\\(#\\)" nil t)
-	    (delete-backward-char 1)
-	  (insert "#")))
-    (progn
-      (insert-for-yank "import pdb ; pdb.set_trace()\n")
-      (previous-line)))
-  (indent-for-tab-command))
-
-;; (global-set-key (kbd "S-<kp-decimal>") 	'jmc-pdb-toggle)
- 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HACKS
 
 (defun tags-search-python-test (regexp)
@@ -662,18 +595,21 @@ current (code) buffer."
   (interactive) 
   (jmc-custom 'jmc-django-test-function 'jmc-nose-thisfunc))
 
+(defun jmc-key-testclass ()
+  (interactive)
+  (jmc-custom 'jmc-django-test-class nil))
+
 (defun jmc-key-testfile ()
   (interactive)
-  (jmc-custom 'jmc-django-test-class
+  (jmc-custom 'jmc-django-test-file
 	      '(lambda () (jmc-nose "" (buffer-file-name)))))
 
+
+;; XX:
 (defun jmc-key-testdir ()
   (interactive)
   (jmc-nose "" (file-name-directory (buffer-file-name))))
   
-(define-key python-mode-map [C-kp-enter] 'jmc-key-setfunc)
-(define-key python-mode-map [kp-add]	'jmc-key-testfile)
-
 ;; (global-set-key 
 ;;  [kp-multiply]
 ;;  (lambda () (interactive) 
