@@ -144,7 +144,15 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;;    (message "woo: %s" (jmc-pdb-enabled-near-point))))
 				   
     
-  
+;; Django:
+(defun jmc-django-appname (&optional srcpath)
+  (let ((srcpath (or srcpath buffer-file-name)))
+    (when (string-match "/apps/\\(.+?\\)/" srcpath)
+      (match-string-no-properties 1 srcpath))))
+
+;; (jmc-django-appname "/apps/zoot/allures.py") => "zoot"
+;; (jmc-django-appname "hmm") => nil
+
 (defun jmc-testfunc-at-point (&optional context srcpath)
   "Current Python test function, class, or nil."
   (let ((context 	(or context (python-current-defun)))
@@ -155,12 +163,22 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 	     (funcname	(car (last parts))))
 	(cond 
 	 ((string-match-p "^test" funcname)	    context)
-	 ((string-match-p "/test" srcpath)	    context)
+	 ((string-match-p "/t" srcpath)	    context) ;XXX
 	 (t					    nil))))))
 ;; (jmc-testfunc-at-point "Zoot.testZoot") => "Zoot.testZoot"
 ;; (jmc-testfunc-at-point "testZoot") => "testZoot"
 ;; (jmc-testfunc-at-point "zoot") => nil
 ;; (jmc-testfunc-at-point "zoot" "/tests.py") => "zoot"
+(when nil
+  (global-set-key 
+   (kbd "<kp-divide>")
+   (lambda () (interactive) 
+     (message "ding: func=%s class=%s" (jmc-testfunc-at-point) (jmc-testclass-at-point))))
+  (global-set-key 
+   (kbd "S-<kp-divide>")
+   (lambda () (interactive) 
+     (message "ding2: %s" (jmc-testfunc-info)))))
+
 
 (defun jmc-testclass-at-point (&optional context srcpath)
   (let ((testfunc (jmc-testfunc-at-point context srcpath)))
@@ -174,6 +192,8 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 
 ;; (jmc-testclass-at-point "ace.Zoot.testZoot") => "ace.Zoot"
 ;; (jmc-testclass-at-point "ace" "/test.py") => "ace"
+
+
 
 
 ;; .................................................. interactive
@@ -258,13 +278,13 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 
 ; XXX:
 (defun project-test-helper (srcpath testname)
-  (if (string-match "/apps/\\(.+?\\)/tests.py" srcpath)
-      (format "%s%s" 
-	      (match-string-no-properties 1 srcpath)
-	      (if testname (concat "." testname) ""))
-    testname))
-;;; (project-test-helper "beer/server/apps/geopoi/tests.py" "x") => "geopoi.x"
-;;; (project-test-helper "beer/openpub/apps/exp/tests.py" "x") => "exp.x"
+  (let ((appname (jmc-django-appname srcpath)))
+    ;; (if (stringp appname)
+    (format "%s%s" appname (if testname (concat "." testname) ""))))
+
+;;; (jmc-django-appname "/apps/geopoi/tests.py") => "geopoi"
+;;; (project-test-helper "/apps/geopoi/tests.py" "x") => "geopoi.x"
+;;; (project-test-helper "/apps/exp/t_misc.py" "x") => "exp.x"
 
 (defun project-active (srcpath)
   (string-match project-dir srcpath))	; XX: absdir
@@ -481,7 +501,14 @@ XX: assumes in same directory."
   ;; (re-search-backward "def test" nil t)
   ;; (forward-paragraph))
 
+(defun jmc-find-tag (tagname &optional next-p regexp-p)
+  "Find tag, reloading tags file if it's been updated."
+  (interactive (find-tag-interactive "Find tag: "))
+  (visit-tags-table tags-file-name)
+  (find-tag tagname next-p regexp-p))
 
+;;   (tags-reset-tags-tables)
+;; (global-set-key (kbd "M-'") 'jmc-find-tag)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HACKS

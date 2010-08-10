@@ -43,3 +43,5 @@ test:
 test-update:
 	./update-tags ~/src/*/setup.py $(PWD)
 
+zoot:
+	cat err0706.txt
