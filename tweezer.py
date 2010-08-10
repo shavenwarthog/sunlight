@@ -1,15 +1,40 @@
 #!/usr/bin/env python
 
-import glob, os
+'''
+tweezer.py -- run a function, log all external calls and return values
+'''
+import sys
+import logging
+import trace
 
-def system(cmd):
-    return os.popen(cmd)
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
-def list_exes():
-    for path in [line.strip() for line in glob.glob('/usr/bin/id*')]:
-        is_file = os.path.isfile(path)
-        is_exec = os.access('/usr/bin/id',os.X_OK)
-        if is_file and is_exec:
-            yield path
+def code_ignore(path):
+    return 'lib/python' in path
 
-print list(list_exes())
+class Tweeze(trace.Trace):
+    def __init__(self):
+        trace.Trace.__init__(self, ignoredirs=[sys.prefix, sys.exec_prefix,])
+        self.globaltrace = self.globaltrace_tracecalls
+
+    def globaltrace_tracecalls(self, frame, why, arg):
+        if why != 'call' or code_ignore(frame.f_code.co_filename):
+            return
+        loc =  frame.f_locals
+        if loc.has_key('__builtins__'):
+            loc = '<large>'
+        logging.info('%s', [frame.f_code, loc])
+    
+# # create a Trace object, telling it what to ignore, and whether to
+# # do tracing or line-counting or both.
+# tracer = trace.Trace(
+#     ignoredirs=[sys.prefix, sys.exec_prefix],
+#     trace=0,
+#     count=1)
+
+# run the new command using the given tracer
+tracer = Tweeze()
+tracer.run('from ex_tweezer import main ; main()')
+
+r = tracer.results()
+r.write_results(show_missing=True, coverdir=".")
