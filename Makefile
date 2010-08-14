@@ -2,6 +2,9 @@ RECENT_PY := $(shell ls -1t *.py | egrep -v _flymake | head -1)
 
 all:
 
+tweeze:
+	./tweezer.py
+#	python -m trace --report --coverdir=/tmp
 xref:
 	./xref.py -f - ex-xref.py
 
