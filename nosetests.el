@@ -4,6 +4,10 @@
 (defvar nosetests-hide t "Hide boring things")
 ;; (setq nosetests-hide nil)
 
+;; (defface nosetests-green
+;;   '((t :foreground "green4" 
+;;        )) "documentation here")
+
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
 (defun nosetests-current ()
@@ -16,6 +20,22 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
       (forward-line))
     (when (re-search-backward "^\\(ERROR\\|FAIL\\): .+\\.\\(.+\\)" nil nil)
       (match-string-no-properties 2))))
+
+;; (defun nosetests-highlight-match (&optional matchnum)
+;;   (put-text-property
+;;    (match-beginning (or matchnum 0))
+;;    (match-end (or matchnum 0))
+;;    'face 'nosetests-green))
+
+;; (when (re-search-forward "beer") (nosetests-highlight-match))
+;; beer yum beer
+
+(defun nosetests-highlight (&optional buffer)
+  (interactive)
+  (hi-lock-face-buffer "^ok$" 'hi-green)
+  (hi-lock-face-buffer " ... ok$" 'hi-green))
+;; (global-set-key (kbd "<kp-up>") 'nosetests-highlight)
+
 
 (defun nosetests-hide-match (&optional matchnum)
   ""
@@ -38,7 +58,13 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   (mapc (lambda (pat) (nosetests-mapc-matches pat 'nosetests-hide-match))
 	pats))
 
-
+(defun nosetests-show-testfunc (&optional buffer)
+  (interactive)
+  (when nosetests-hide
+    (let ((buffer (or buffer (current-buffer))))
+      (with-current-buffer buffer
+	(nosetests-hidepats (list "test_"))))))
+  
 (defun nosetests-h-header (&optional buffer)
   "Hide boilerplate, leaving print output, traceback, and exception details."
   (interactive)
@@ -65,6 +91,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   "Hide boilerplate, leaving print output, traceback, and exception details."
   (interactive)
   (when nosetests-hide
+    (nosetests-highlight)		;XX: run at beginning
     (nosetests-mapc-matches "/home/johnm/src/[^/]+/" 'nosetests-hide-match)
     (nosetests-mapc-matches 
      "\s+File .+/server/[^/]+.py.+\n.+\n" 
