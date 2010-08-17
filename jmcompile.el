@@ -297,7 +297,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 ;; use normal "unittest" framework, run tests via external "run_tests" script
 
 (set-variable 'jmc-django-restart-command "cd %s ; make -C johnm restart")
-(set-variable 'jmc-django-test-command "cd %s ; johnm/run_tests %s")
+(set-variable 'jmc-django-test-command "cd %s ; johnm/run_tests2 %s")
 
 (defun jmc-django-restart ()
   "Restart Django"
