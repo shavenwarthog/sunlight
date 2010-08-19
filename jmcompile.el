@@ -297,7 +297,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 ;; use normal "unittest" framework, run tests via external "run_tests" script
 
 (set-variable 'jmc-django-restart-command "cd %s ; make -C johnm restart")
-(set-variable 'jmc-django-test-command "cd %s ; johnm/run_tests2 %s")
+(set-variable 'jmc-django-test-command "cd %s ; johnm/run_tests %s")
 
 (defun jmc-django-restart ()
   "Restart Django"
@@ -470,7 +470,7 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 --stop	stop after first error/failure
 ")
 ;; (setq jmc-nose-switches "-sv --stop --nologcapture")
-;; (setq jmc-nose-switches "-sv")
+;; (setq jmc-nose-switches "-v --stop --logging-filter=ignore")
 
 (defcustom jmc-nose-thisfunc-switches	"%s:%s"
   "extra args for 'thisfunc' tests")
