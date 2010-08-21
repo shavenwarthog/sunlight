@@ -2,7 +2,7 @@
 snoop.py -- log local vars at end of unit test
 '''
 
-import copy, inspect, logging, sys, tokenize
+import copy, inspect, keyword, logging, sys, tokenize
 from nose import inspector
 from nose.inspector import Expander as nose_Expander
 
@@ -115,32 +115,35 @@ def test_vartrace():
     print
     print '-'.join(t.lines[t.linerange[0]:t.linerange[1]])
 
-class VarAnnotate(object):
-    class NoValue(object):
-        pass
 
-    def __init__(self, localvars):
-        self.locals = localvars
+class NoValue(object):
+    pass
 
-    def value(self, name):
-        return self.locals.get(name, self.NoValue)
+def vars_used(localvars, source, linest, lineend):
+    def get(name):
+        return localvars.get(name, NoValue)
 
-    def __call__(self, ttype, tok, start, end, line):
-        if 01:
-            logging.debug('\t%s', [ttype, tok, start, end, line])
-        if ttype != tokenize.NAME:
-            return
-        val = self.value(tok)
-        if val is self.NoValue or type(val).__name__ in ['function',]:
-            return
-        logging.info(':%d:%d-%d %s %s', start[0], start[1], end[1], tok, val)
+    region = source[linest : lineend]
+    for ttype, tok, start, end, _ in tokenize.generate_tokens(
+        readline=lambda: region.pop(0) if region else ''
+        ):
+        if not (ttype == tokenize.NAME and not keyword.iskeyword(tok)):
+            continue
+        yield (start[0], start[1], end[1], tok, get(tok))
+
+
 
 def test_annotate():
     t = TraceLocals()
     t.runfunc(test_tracelocals)
-    source = t.lines[t.linerange[0] : t.linerange[1]]
-    for ttype, tok, start, end, line in tokenize.generate_tokens(
-        readline=lambda: source.pop(0) if source else ''
-        ):
-        print ttype, tok, start, end, line,
+    eq_( list(vars_used(
+        localvars=t.outvars,
+        source=t.lines,
+        linest=t.linerange[0],
+        lineend=t.linerange[1],
+        ))[:2],
+         [(1, 4, 20, 'test_tracelocals', NoValue), 
+          (2, 4, 5, 'a', 2),
+          ]
+         )
 
