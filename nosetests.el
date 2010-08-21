@@ -1,8 +1,33 @@
 ;; nosetests.el -- trim fat from post-test report
 
 (require 'compile)
-(defvar nosetests-hide t "Hide boring things")
+(defcustom nosetests-highlight-matches t 
+  "Hide boring things, highlight goodies" 
+  :group 'nosetests)
 ;; (setq nosetests-hide nil)
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: FACES
+
+(defface nosetests-okay
+  '((((min-colors 88) (background dark))
+     (:foreground "green2"))
+    (((background dark)) (:background "green" :foreground "black"))
+    (((min-colors 88)) (:background "green1"))
+    (t (:background "green")))
+  "Face"
+  :group 'nosetests)
+
+(defface nosetests-error
+  '((((min-colors 88) (background dark))
+     (:background "firebrick2"))
+    (((background dark)) (:background "green" :foreground "black"))
+    (((min-colors 88)) (:background "green1"))
+    (t (:background "green")))
+  "Face"
+  :group 'nosetests)
+
+(set-face-attribute 'nosetests-error nil :background "firebrick3")
+
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
@@ -19,29 +44,32 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: 
 
-(defun nosetests-highlight-pats (face patlist)
+(defun nosetests-hl-pats (face patlist)
   (interactive)
   (dolist (pat patlist)
-    (hi-lock-face-buffer pat facelist)))
+    (hi-lock-face-buffer pat face)))
 
-(defun nosetests-h-ok ()
-  (nosetests-highlight-pats 'hi-green (list "^ok$" " ... ok$")))
 
-(define-compilation-mode nosetests-mode "Nosetests"
-  "Toggle Nosetests mode."
-  :group 'flynote
-  :lighter " N19"
-  (set (make-local-variable 'compilation-process-setup-function) 'nosetests-process-setup))
+(defun nosetests-highlight-setup ()
+  (nosetests-hl-pats 'nosetests-okay (list "\\(?: ... \\)ok$" "^OK$"))
+  (nosetests-hl-pats 'nosetests-error (list " ... ERROR")))
 
-;;;   (progn
-;;; ;;;     (flynote-remove-overlays)
-;;; ;;;     (if flynote-idle-timer
-;;; ;;;         (cancel-timer flynote-idle-timer))
-;;; ;;;     (setq flynote-idle-timer
-;;; ;;;           (run-with-idle-timer flynote-delay t 'flynote-callback))
-;;;     (when nosetests-mode
-;;;       (nosetests-highlight))))
 
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: MINOR MODE
+
+(defun nosetests-exit-message-function (status code msg)
+  (cons msg 
+	(if (= code 0)
+	    "ok"
+	  (format "%d errs" 12))))
+
+(defun nosetests-mode-hook ()
+  ;; (when (eq nosetests-highlight-matches t)
+  (set (make-local-variable 'compilation-exit-message-function)
+       'nosetests-exit-message-function)
+  (nosetests-highlight-setup))
+
+(add-hook 'compilation-mode-hook 'nosetests-mode-hook)
 
 (provide 'nosetests)
 

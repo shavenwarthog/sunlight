@@ -2,6 +2,11 @@ RECENT_PY := $(shell ls -1t *.py | egrep -v _flymake | head -1)
 
 all:
 
+snoop:
+	nosetests -d ./snoop.py
+# 	nosetests --version
+# 	nosetests -p
+
 tweeze:
 	./tweezer.py
 #	python -m trace --report --coverdir=/tmp

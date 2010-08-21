@@ -21,26 +21,6 @@ def test_silly():
     assert 0,'woo'
 
 
-def var_value(tok, locals, globals):
-    # Clean this junk up
-    try:
-        val = locals[tok]
-        if callable(val):
-            val = tok
-        else:
-            val = repr(val)
-    except KeyError:
-        try:
-            val = globals[tok]
-            if callable(val):
-                val = tok
-            else:
-                val = repr(val)
-        except KeyError:
-            val = tok
-    return val
-
-
 class MyExpander(nose_Expander):
     def __call__(self, ttype, tok, start, end, line):
         logging.info('exp: %s', [ttype, tok, start, end, line])
@@ -50,20 +30,26 @@ class MyExpander(nose_Expander):
         logging.info('+ %s',newsrc[len(oldsrc):])
 
 class MyExpander2(object):
-    """Simple expression expander. Uses tokenize to find the names and
-    expands any that can be looked up in the frame.
-    """
     def __init__(self, locals, globals):
         self.locals = locals
         self.globals = globals
-        self.lpos = None
         self.expanded_source = ''
-         
+
+    def value(self, varname):
+        return self.locals.get(varname, self.globals.get(varname, self.NoValue))
+
+    class NoValue(object):
+        pass
+
     def __call__(self, ttype, tok, start, end, line):
         if ttype != tokenize.NAME:
             return
-        val = var_value(tok, self.locals, self.globals)
-        logging.info('%s = %s', tok, val)
+        val = self.value(tok)
+        if 0:
+            logging.debug('\t%s', [ttype, tok, start, end, line, val, type(val).__name__])
+        if val is self.NoValue or type(val).__name__ in ['function',]:
+            return
+        logging.info(':%d:%d-%d %s %s', start[0], start[1], end[1], tok, val)
 
 inspector.Expander = MyExpander2 # XX monkeypatch
 
