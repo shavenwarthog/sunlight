@@ -2,15 +2,16 @@
 snoop.py -- log local vars at end of unit test
 '''
 
-import logging, re, sys, tokenize
+import copy, inspect, logging, sys, tokenize
 from nose import inspector
-# .inspector import inspect_traceback, tbsource, find_inspectable_lines
 from nose.inspector import Expander as nose_Expander
 
 from nose.tools import eq_
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::: USING EXCEPTION + EXPANDER
 
 def test_silly():
     a = 1
@@ -30,16 +31,16 @@ class MyExpander(nose_Expander):
         logging.info('+ %s',newsrc[len(oldsrc):])
 
 class MyExpander2(object):
-    def __init__(self, locals, globals):
-        self.locals = locals
-        self.globals = globals
+    class NoValue(object):
+        pass
+
+    def __init__(self, localvars, globalvars):
+        self.locals = localvars
+        self.globals = globalvars
         self.expanded_source = ''
 
     def value(self, varname):
         return self.locals.get(varname, self.globals.get(varname, self.NoValue))
-
-    class NoValue(object):
-        pass
 
     def __call__(self, ttype, tok, start, end, line):
         if ttype != tokenize.NAME:
@@ -66,3 +67,43 @@ def test_detail():
     tbinfo = inspector.inspect_traceback(tb)
     print tbinfo
 
+# :::::::::::::::::::::::::::::::::::::::::::::::::: USING TRACE
+import trace
+
+def test_tracelocals():
+    a = 1
+    john = 'stud'
+    a += a
+    out = john*a
+
+class TraceLocals(trace.Trace):
+    def __init__(self):
+        trace.Trace.__init__(self)
+        self.globaltrace = self.globaltrace_tl
+        self.verbose = False
+        self.outvars = None
+        self.lines = None
+        self.linerange = None
+
+    def globaltrace_tl(self, frame, why, arg):
+        if self.verbose:
+            print frame,why,arg
+        return self.localtrace_tl
+
+    def localtrace_tl(self, frame, why, arg):
+        if self.verbose:
+            print '  ', frame,why,arg
+            print '\t',sorted(frame.f_locals.iteritems())
+        if why == 'return':
+            self.outvars = copy.copy(frame.f_locals)
+            lines,lineno = inspect.findsource(frame)
+            self.lines = lines
+            self.linerange = lineno, frame.f_lineno
+        return self.localtrace_tl
+ 
+def test_vartrace():
+    t = TraceLocals()
+    t.runfunc(test_tracelocals)
+    eq_( t.outvars, {'a': 2, 'john': 'stud', 'out': 'studstud'} )
+    print
+    print '-'.join(t.lines[t.linerange[0]:t.linerange[1]])
