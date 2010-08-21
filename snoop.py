@@ -72,7 +72,13 @@ import trace
 
 def test_tracelocals():
     a = 1
+    longline = \
+        'testme'
     john = 'stud'
+    def inner(arg=None):
+        xi = 2
+        return xi + 1
+    testfunc = inner(a)
     a += a
     out = john*a
 
@@ -100,10 +106,41 @@ class TraceLocals(trace.Trace):
             self.lines = lines
             self.linerange = lineno, frame.f_lineno
         return self.localtrace_tl
- 
+
 def test_vartrace():
     t = TraceLocals()
     t.runfunc(test_tracelocals)
-    eq_( t.outvars, {'a': 2, 'john': 'stud', 'out': 'studstud'} )
+    del t.outvars['inner']   # a function
+    eq_( t.outvars, {'a': 2, 'john': 'stud', 'testfunc': 3, 'out': 'studstud'} )
     print
     print '-'.join(t.lines[t.linerange[0]:t.linerange[1]])
+
+class VarAnnotate(object):
+    class NoValue(object):
+        pass
+
+    def __init__(self, localvars):
+        self.locals = localvars
+
+    def value(self, name):
+        return self.locals.get(name, self.NoValue)
+
+    def __call__(self, ttype, tok, start, end, line):
+        if 01:
+            logging.debug('\t%s', [ttype, tok, start, end, line])
+        if ttype != tokenize.NAME:
+            return
+        val = self.value(tok)
+        if val is self.NoValue or type(val).__name__ in ['function',]:
+            return
+        logging.info(':%d:%d-%d %s %s', start[0], start[1], end[1], tok, val)
+
+def test_annotate():
+    t = TraceLocals()
+    t.runfunc(test_tracelocals)
+    source = t.lines[t.linerange[0] : t.linerange[1]]
+    for ttype, tok, start, end, line in tokenize.generate_tokens(
+        readline=lambda: source.pop(0) if source else ''
+        ):
+        print ttype, tok, start, end, line,
+
