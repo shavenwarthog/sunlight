@@ -2,7 +2,7 @@
 snoop.py -- log local vars at end of unit test
 '''
 
-import copy, inspect, keyword, logging, sys, tokenize, trace
+import copy, inspect, keyword, logging, os, sys, tokenize, trace
 from nose.tools import eq_
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -131,11 +131,12 @@ def test_modglobals():
 def loader(path):
     class Loader(object):
         def load_module(self, name):
+            print 'load',name
             if name not in sys.modules:
                 _mapper.LoadModule(path, name)
                 module = _mapper.GetModule(name)
                 module.__file__ = path
-                sys.modules[name] = module
+                sys.modules[name] = __import__(name)
                 if '.' in name:
                     parent_name, child_name = name.rsplit('.', 1)
                     setattr(sys.modules[parent_name], child_name, module)
@@ -143,19 +144,123 @@ def loader(path):
     return Loader()
 
 class MetaImporter(object):
+#    CAPTURE = ['ex_snoop']
+
     def find_module(self, fullname, path=None):
-        if fullname == 'numpy' or fullname.startswith('numpy.'):
-            _mapper.PerpetrateNumpyFixes()
-        if fullname in ('_hashlib', 'ctypes'):
-            raise ImportError('%s is not available in ironclad yet' % fullname)
+        print 'find %s %s' % (fullname, path)
+        return loader(fullname)
+        # lastname = fullname.rsplit('.', 1)[-1]
+        # for d in (path or sys.path):
+        #     py = os.path.join(d, lastname + '.py')
+        #     if os.path.exists(py):
+        #         return loader(py)
 
-        lastname = fullname.rsplit('.', 1)[-1]
-        for d in (path or sys.path):
-            pyd = os.path.join(d, lastname + '.pyd')
-            if os.path.exists(pyd):
-                return loader(pyd)
-
-        return None
+        # return None
 
 def test_modglobals2():
-    eq_( 
+    sys.meta_path = [MetaImporter()] # XX
+    t = TraceLocals()
+    print 'woo'
+    try:
+        _mod = __import__('ex_snoop')
+        t.runctx(_mod.test_os_system.func_code, globals=dict(sys=sys))
+    finally:
+        pass
+    # print 'globals: %s' % xglobals._log
+    #     print 'locals: %s' % xlocals._log
+#    assert list(tvars_used(t))[1][-1].startswith('2.6.5 ') 
+    # eq_( 
+
+
+# 
+
+
+# http://nullege.com/codes/show/src@Python-2.6.4@Lib@test@test_importhooks.py/224/sys.path_hooks.append
+
+class ImpLoader(object):
+    def __init__(self, file, filename, stuff):
+        self.file = file
+        self.filename = filename
+        self.stuff = stuff
+  
+    def load_module(self, fullname):
+        mod = imp.load_module(fullname, self.file, self.filename, self.stuff)
+        if self.file:
+            self.file.close()
+        mod.__loader__ = self  # for introspection
+        # print 'load %s => %s, loader=%s' % (fullname,mod,mod.__loader__)
+        return mod
+
+class ImpWrapper(object):
+    LoaderClass = ImpLoader
+    def __init__(self, path=None):
+        if path is not None and not os.path.isdir(path):
+            raise ImportError
+        self.path = path
+  
+    def find_module(self, fullname, path=None):
+        # print 'find',fullname
+        subname = fullname.split(".")[-1]
+        if subname != fullname and self.path is None:
+            return None
+        if self.path is None:
+            path = None
+        else:
+            path = [self.path]
+        try:
+            file, filename, stuff = imp.find_module(subname, path)
+        except ImportError:
+            return None
+        return self.LoaderClass(file, filename, stuff)
+  
+    
+def testImpWrapper():
+    i = ImpWrapper()
+    sys.meta_path.append(i)
+    sys.path_hooks.append(ImpWrapper)
+    mnames = ("colorsys", "urlparse", "distutils.core")
+    for mname in mnames:
+        parent = mname.split(".")[0]
+        for n in sys.modules.keys():
+            if n.startswith(parent):
+                del sys.modules[n]
+    for mname in mnames:
+        m = __import__(mname, globals(), locals(), ["__dummy__"])
+        assert hasattr(m,'__loader__'), m  # to make sure we actually handled the import
+
+def testImpWrapper2():
+    class LogModule(object):
+        def __init__(self, deleg):
+            self._deleg = deleg
+        def __getattr__(self, key):
+            print 'LOG:',key
+            try:
+                res = getattr(self._deleg, key)
+            except Exception as exc:
+                print '- EXC:',self._deleg,exc
+                raise
+            print '- res:',res
+            return res
+
+    class ImpLoader2(ImpLoader):
+        def load_module(self, fullname):
+            mod = super(ImpLoader2,self).load_module(fullname)
+            if fullname != 'ex_snoop':
+                return mod
+            print 'BEER'
+            return LogModule(mod)
+
+    i = ImpWrapper()
+    i.LoaderClass = ImpLoader2
+    sys.meta_path.append(i)
+    sys.path_hooks.append(ImpWrapper)
+    mnames = ("colorsys", "ex_snoop")
+    for mname in mnames:
+        parent = mname.split(".")[0]
+        for n in sys.modules.keys():
+            if n.startswith(parent):
+                del sys.modules[n]
+    for mname in mnames:
+        m = __import__(mname, globals(), locals(), ["__dummy__"])
+        assert hasattr(m,'__loader__'), m  # to make sure we actually handled the import
+    
