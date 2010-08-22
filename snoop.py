@@ -125,12 +125,11 @@ def vars_used(localvars, source, linest, lineend):
 
     region = source[linest : lineend]
     for ttype, tok, start, end, _ in tokenize.generate_tokens(
-        readline=lambda: region.pop(0) if region else ''
+        readline=iter(region).next,
         ):
         if not (ttype == tokenize.NAME and not keyword.iskeyword(tok)):
             continue
-        yield (start[0], start[1], end[1], tok, get(tok))
-
+        yield (start[0]+linest, start[1], end[1], tok, get(tok))
 
 
 def test_annotate():
@@ -142,8 +141,8 @@ def test_annotate():
         linest=t.linerange[0],
         lineend=t.linerange[1],
         ))[:2],
-         [(1, 4, 20, 'test_tracelocals', NoValue), 
-          (2, 4, 5, 'a', 2),
+         [(73, 4, 20, 'test_tracelocals', NoValue), 
+          (74, 4, 5, 'a', 2) 
           ]
          )
 
