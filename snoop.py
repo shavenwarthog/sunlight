@@ -64,15 +64,15 @@ def vars_used(localvars, source, linest, lineend):
 
 def test_annotate():
     t = TraceLocals()
-    t.runfunc(test_tracelocals)
+    _mod = __import__('ex_snoop')
+    t.runfunc(_mod.test_tracelocals)
     eq_( list(vars_used(
         localvars=t.outvars,
         source=t.lines,
         linest=t.linerange[0],
         lineend=t.linerange[1],
         ))[:2],
-         [(73, 4, 20, 'test_tracelocals', NoValue), 
-          (74, 4, 5, 'a', 2) 
-          ]
+         [(6, 4, 20, 'test_tracelocals', NoValue), 
+          (7, 4, 5, 'a', 2)]
          )
 
