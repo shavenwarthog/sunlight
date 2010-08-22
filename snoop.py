@@ -230,31 +230,35 @@ def testImpWrapper():
 
 def testImpWrapper2():
     class LogModule(object):
+        LOG = []                # class attribute
+
         def __init__(self, deleg):
             self._deleg = deleg
-        def __getattr__(self, key):
-            print 'LOG:',key
+
+        def __getattribute__(self, key):
+            GET = partial(object.__getattribute__, self)
+            LOG = LogModule.LOG
             try:
+                LOG.append( [self._deleg, key] )
                 res = getattr(self._deleg, key)
             except Exception as exc:
-                print '- EXC:',self._deleg,exc
+                # print '- EXC:',self._deleg,exc
+                LOG[-1].append( repr(exc) )
                 raise
-            print '- res:',res
+            # print '- res:',res
+            LOG[-1].append( res )
             return res
 
     class ImpLoader2(ImpLoader):
         def load_module(self, fullname):
             mod = super(ImpLoader2,self).load_module(fullname)
-            if fullname != 'ex_snoop':
-                return mod
-            print 'BEER'
             return LogModule(mod)
 
     i = ImpWrapper()
     i.LoaderClass = ImpLoader2
     sys.meta_path.append(i)
     sys.path_hooks.append(ImpWrapper)
-    mnames = ("colorsys", "ex_snoop")
+    mnames = "ex_snoop", 'os'
     for mname in mnames:
         parent = mname.split(".")[0]
         for n in sys.modules.keys():
@@ -264,3 +268,12 @@ def testImpWrapper2():
         m = __import__(mname, globals(), locals(), ["__dummy__"])
         assert hasattr(m,'__loader__'), m  # to make sure we actually handled the import
     
+    _mod = __import__('ex_snoop')
+    t = TraceLocals()
+    t.runctx(_mod.test_os_system.func_code)
+    if 0:
+        print 'VARS:'
+        print '\n'.join( (str(row) for row in tvars_used(t)) )
+    # assert list(tvars_used(t))[1][-1].startswith('2.6.5 ') 
+    print 'LOG:'
+    print '\n'.join( (str(row) for row in LogModule.LOG) )
