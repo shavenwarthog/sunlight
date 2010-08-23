@@ -87,7 +87,8 @@ class Tweeze(trace.Trace):
 # run the new command using the given tracer
 tracer = Tweeze()
 tracer.run('from ex_tweezer import main ; main()')
-print tracer.out
+for row in tracer.out:
+    print row
 
 if 1:
     r = tracer.results()

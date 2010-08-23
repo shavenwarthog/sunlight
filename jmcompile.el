@@ -81,7 +81,7 @@ Run function 'test'.
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PYTHON/NOSE
 
 (defcustom jmc-nose-postproc "" "Post-processor, if any.")
-(setq jmc-nose-postproc	" 2>&1 | ~/bin/simplifyp -")
+;; (setq jmc-nose-postproc	" 2>&1 | ~/bin/simplifyp -")
 (setq jmc-nose-postproc	nil)
 ;; (setq jmc-nose-program "/usr/bin/nosetests")
 
@@ -459,7 +459,10 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
   (defun jmc-nose-program ()
     (jmc-find "nosetests")))
 (defun jmc-nose-program ()
-  "/home/johnm/local/bin/nosetests")
+  "nosetests"
+  ;; "/usr/bin/nosetests"
+  ;; "/home/johnm/local/bin/nosetests"
+  )
 
 ;; (jmc-nose-program) => "nosetests"
 
