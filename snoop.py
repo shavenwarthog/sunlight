@@ -13,7 +13,7 @@ class TraceLocals(trace.Trace):
     def __init__(self):
         trace.Trace.__init__(self)
         self.globaltrace = self.globaltrace_tl
-        self.verbose = True
+        self.verbose = False
         self.outvars = None
         self.lines = None
         self.linerange = None
@@ -146,7 +146,7 @@ def checkpath(path, srcpath=None):
             return None 
         if type(value) not in BASICTYPES:
             value = repr(value) # ?
-        return lineno, 'varvalue', [varst, varend, varname, value]
+        return [lineno, 'varvalue', [varst, varend, varname, value]]
 
     return filter(None, [ remap(info) for info in tvars_used(t) ])
     
@@ -154,3 +154,4 @@ def checkpath(path, srcpath=None):
 def test_checkpath():
     res = checkpath(None)
     print '\n'.join( (str(row) for row in res) )
+    eq_( res[0],  [9, 'varvalue', [4, 7, 'rep', 1]] )
