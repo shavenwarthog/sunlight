@@ -139,24 +139,25 @@ def test_tvars():
             (10, 27, 31, 'name', NoValue), 		(11, 11, 14, 'res', 'johnjohnjohn'),
             ] )
 
-def checkpath(path, srcpath=None):
+def remap(info):
     # cadged from json library:
     BASICTYPES = (str, unicode, int, long, float, bool, None) 
+    lineno, varst, varend, varname, value = info
+    if value is NoValue:
+        return None 
+    if type(value) not in BASICTYPES:
+        value = repr(value) # ?
+    return [lineno, 'varvalue', [varst, varend, varname, value]]
+
+
+def checkpath(path, srcpath=None):
     t = TraceLocals()
-    modname = os.path.splitext(path)[0]
-    print modname
+    modname = os.path.splitext(path)[0] # XX
     _mod = __import__(modname)
     t.runctx(_mod.test_sillyfunc.func_code,
-             globals={'sillyfunc':_mod.sillyfunc},
+             globals=_mod.__dict__,
              )
-    def remap(info):
-        lineno, varst, varend, varname, value = info
-        if value is NoValue:
-            return None 
-        if type(value) not in BASICTYPES:
-            value = repr(value) # ?
-        return [lineno, 'varvalue', [varst, varend, varname, value]]
-
+ 
     return filter(None, [ remap(info) for info in tvars_used(t) ])
     
     
