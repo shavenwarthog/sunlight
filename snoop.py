@@ -2,8 +2,7 @@
 snoop.py -- log local vars at end of unit test
 '''
 
-import copy, inspect, keyword, logging, os, sys, tokenize, trace
-# from functools import partial
+import copy, inspect, keyword, logging, sys, tokenize, trace
 from nose.tools import eq_
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -17,6 +16,7 @@ class TraceLocals(trace.Trace):
         self.outvars = None
         self.lines = None
         self.linerange = None
+        self.filename = None
 
     def globaltrace_tl(self, frame, why, arg):
         if self.verbose:
@@ -45,8 +45,9 @@ def test_vartrace():
     t.runfunc(_mod.test_tracelocals)
     del t.outvars['inner']   # a function
     eq_( t.outvars, {'a': 2, 'longline': 'testme', 'john': 'stud', 'testfunc': 3, 'out': 'studstud'} )
-    print
-    print '-'.join(t.lines[t.linerange[0]:t.linerange[1]])
+    if 0:
+        print
+        print '-'.join(t.lines[t.linerange[0]:t.linerange[1]])
 
 
 class NoValue(object):
@@ -82,8 +83,9 @@ def test_annotate():
         linest=t.linerange[0],
         lineend=t.linerange[1],
         ))[:2],
-         [(6, 4, 20, 'test_tracelocals', NoValue), 
-          (7, 4, 5, 'a', 2)]
+         [(16, 4, 20, 'test_tracelocals', NoValue), 
+          (17, 4, 5, 'a', 2),
+          ]
          )
 
 LOG = []                        # global XX
@@ -105,7 +107,7 @@ class WrapModule(object):
         return res
 
 def logwrap(obj):
-    print 'LOGWRAP:',obj
+    # print 'LOGWRAP:',obj
     return WrapModule(deleg=obj)
     
 def test_traceglobals():
@@ -114,13 +116,13 @@ def test_traceglobals():
     _mod = __import__('ex_snoop')
     _mod.sys = logwrap(sys)
     t.runfunc(_mod.test_pythonver)
-    assert list(tvars_used(t))[1][-1].startswith('2.6.5 ') 
+    assert list(tvars_used(t))[1][-1].startswith('2.6.') 
 
 def test_ctxglobals():
     t = TraceLocals()
     _mod = __import__('ex_snoop')
     t.runctx(_mod.test_pythonver.func_code, globals=dict(sys=sys) )
-    assert list(tvars_used(t))[1][-1].startswith('2.6.5 ') 
+    assert list(tvars_used(t))[1][-1].startswith('2.6.') 
 
 def test_tvars():
     t = TraceLocals()
@@ -129,8 +131,14 @@ def test_tvars():
              globals={'sillyfunc':_mod.sillyfunc},
              )
     out = list(tvars_used(t))
-    print '\n'.join( (str(row) for row in out) )
-
+    if 0:
+        print '\n'.join( (str(row) for row in out) )
+    eq_( out, [
+            (8, 4, 18, 'test_sillyfunc', NoValue),
+            (9, 4, 7, 'rep', 1), 			(10, 4, 7, 'res', 'johnjohnjohn')
+            , (10, 10, 19, 'sillyfunc', NoValue), 	(10, 20, 23, 'rep', 1),
+            (10, 27, 31, 'name', NoValue), 		(11, 11, 14, 'res', 'johnjohnjohn'),
+            ] )
 
 def checkpath(path, srcpath=None):
     # cadged from json library:
@@ -153,5 +161,6 @@ def checkpath(path, srcpath=None):
     
 def test_checkpath():
     res = checkpath(None)
-    print '\n'.join( (str(row) for row in res) )
+    if 0:
+        print '\n'.join( (str(row) for row in res) )
     eq_( res[0],  [9, 'varvalue', [4, 7, 'rep', 1]] )
