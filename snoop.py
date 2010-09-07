@@ -2,7 +2,7 @@
 snoop.py -- log local vars at end of unit test
 '''
 
-import copy, inspect, keyword, logging, sys, tokenize, trace
+import copy, inspect, keyword, logging, os, sys, tokenize, trace
 from nose.tools import eq_
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -112,7 +112,6 @@ def logwrap(obj):
     
 def test_traceglobals():
     t = TraceLocals()
-    # t.verbose = True
     _mod = __import__('ex_snoop')
     _mod.sys = logwrap(sys)
     t.runfunc(_mod.test_pythonver)
@@ -144,7 +143,9 @@ def checkpath(path, srcpath=None):
     # cadged from json library:
     BASICTYPES = (str, unicode, int, long, float, bool, None) 
     t = TraceLocals()
-    _mod = __import__('ex_snoop')
+    modname = os.path.splitext(path)[0]
+    print modname
+    _mod = __import__(modname)
     t.runctx(_mod.test_sillyfunc.func_code,
              globals={'sillyfunc':_mod.sillyfunc},
              )
@@ -160,7 +161,7 @@ def checkpath(path, srcpath=None):
     
     
 def test_checkpath():
-    res = checkpath(None)
+    res = checkpath('ex_snoop.py')
     if 0:
         print '\n'.join( (str(row) for row in res) )
     eq_( res[0],  [9, 'varvalue', [4, 7, 'rep', 1]] )
