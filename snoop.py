@@ -151,18 +151,27 @@ def remap(info):
 
 
 def checkpath(path, srcpath=None):
-    t = TraceLocals()
-    modname = os.path.splitext(path)[0] # XX
-    _mod = __import__(modname)
-    t.runctx(_mod.test_sillyfunc.func_code,
-             globals=_mod.__dict__,
-             )
- 
-    return filter(None, [ remap(info) for info in tvars_used(t) ])
+    """Run each test_method(), capturing local variables of each.
+    """
+    modname = os.path.basename( os.path.splitext(path)[0] ) # XX
+    logging.error(modname)
+    _mod = __import__(modname)                              # XX
+    info = []
+    for fname, fobj in _mod.__dict__.iteritems():
+        if not (fname.startswith('test_') and inspect.isfunction(fobj)):
+            continue
+        # XX: copy module before possibly modifying it?
+        t = TraceLocals()
+        t.runctx( fobj.func_code, globals=_mod.__dict__ )
+        info += tvars_used(t)
+
+    return filter(None, [ remap(rec) for rec in info ])
     
     
 def test_checkpath():
     res = checkpath('ex_snoop.py')
-    if 0:
+    if 01:
         print '\n'.join( (str(row) for row in res) )
-    eq_( res[0],  [9, 'varvalue', [4, 7, 'rep', 1]] )
+    eq_( len(res), 19 )
+    eq_( res[0], [9, 'varvalue', [4, 7, 'rep', 1]] )
+    eq_( res[-2], [26, 'varvalue', [15, 16, 'a', 2]] )

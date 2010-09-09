@@ -52,7 +52,8 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 (defun nosetests-highlight-setup ()
   (nosetests-hl-pats 'nosetests-okay (list "\\(?: ... \\)ok$" "^OK$"))
-  (nosetests-hl-pats 'nosetests-error (list " ... ERROR")))
+  (nosetests-hl-pats 'nosetests-error (list " ... ERROR$")))
+  
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: MINOR MODE
