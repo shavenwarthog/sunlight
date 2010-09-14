@@ -143,12 +143,35 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;;    (interactive)
 ;;    (message "woo: %s" (jmc-pdb-enabled-near-point))))
 				   
+
+(defun
     
 ;; Django:
 (defun jmc-django-appname (&optional srcpath)
   (let ((srcpath (or srcpath buffer-file-name)))
-    (when (string-match "/apps/\\(.+?\\)/" srcpath)
-      (match-string-no-properties 1 srcpath))))
+    ; geopoi et al:
+    (cond
+     ((string-match "/apps/\\(.+?\\)/" srcpath)      (match-string-no-properties 1 srcpath))
+     ((string-match "/victoryM/" srcpath)	;XXX
+      "victoryM"))))
+
+;; from server/tests.py:  format=appname: module
+;;
+;;;     'elmer':    elmer.tests,
+;;;     'apis':     api_tests,
+;;;     'users':    users.tests,
+;;;     'shindig':  shindig.tests,
+;;;     'mongo':    mongo.test,
+;;;     'learning': learning.tests,
+;;;     'search':   search.tests,
+;;;     'victoryM': victoryM.tests,
+;;;     'openpub_users': openpub.apps.users.tests,
+;;;     'clustering': clustering.tests,
+;;;     'auth_wrap': auth_wrap_tests,
+;;;     'sjson': sjson.tests,
+;;;     'mongo_publish' : mongo.publishing.tests, 
+;;;     'mongo_user_migrate': mongo.migration.tests
+     
 
 ;; (jmc-django-appname "/apps/zoot/allures.py") => "zoot"
 ;; (jmc-django-appname "hmm") => nil
@@ -324,7 +347,12 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
     (if testclass
 	(jmc-django-test buffer-file-name testclass))))
 
+;; XXXX:
 (defun jmc-django-test-file ()
+  (interactive)
+  (jmc-django-test buffer-file-name nil))
+	
+(defun jmc-django-test-app ()
   (interactive)
   (jmc-django-test buffer-file-name nil))
 	
