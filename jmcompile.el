@@ -143,8 +143,14 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;;    (interactive)
 ;;    (message "woo: %s" (jmc-pdb-enabled-near-point))))
 				   
+;; XX gauche but workable
+;; (defun jmc-all-testcases ()
+;;   (let ((result 
+;;   (while (re-search-forward "class \\(.+?\\)\(.*TestCase" nil t)
+    
+;; class Zoot_Test(TestCase)
 
-(defun
+  
     
 ;; Django:
 (defun jmc-django-appname (&optional srcpath)
@@ -244,7 +250,7 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 
 ; Ex: "nosetests -sv file.py:TestClass.testFunc"
 ;
-(defun jmc-nose-thisfunc (&optional args)
+(defun jmc-nose-test-function (&optional args)
   "Run the test function under the cursor, or all tests in file, or all tests in related file."
   (interactive)
   (let ((testfunc (jmc-testfunc-at-point)))
@@ -355,6 +361,15 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 (defun jmc-django-test-app ()
   (interactive)
   (jmc-django-test buffer-file-name nil))
+
+;; XXXX:
+;; (defun jmc-django-test-all-classes (testpath testname)
+;;   (interactive)
+;;   (let ((appname (jmc-django-appname srcpath)))
+;;     (jmc-make
+;;      (format jmc-django-test-command
+;; 	     project-dir
+;; 	     (project-test-helper testpath testname))))
 	
 ;; (defun jmc-django-test-class ()
 ;;   (interactive)
@@ -649,15 +664,15 @@ current (code) buffer."
 ;;   nil)
 
 
-(defun jmc-key-setfunc ()
+(defun jmc-key-test-function ()
   (interactive) 
-  (jmc-custom 'jmc-django-test-function 'jmc-nose-thisfunc))
+  (jmc-custom 'jmc-django-test-function 'jmc-nose-test-function))
 
-(defun jmc-key-testclass ()
+(defun jmc-key-test-class ()
   (interactive)
   (jmc-custom 'jmc-django-test-class nil))
 
-(defun jmc-key-testfile ()
+(defun jmc-key-test-file ()
   (interactive)
   (jmc-custom 'jmc-django-test-file
 	      '(lambda () (jmc-nose "" (buffer-file-name)))))

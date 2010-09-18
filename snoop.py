@@ -3,7 +3,10 @@ snoop.py -- log local vars at end of unit test
 '''
 
 import copy, inspect, keyword, logging, os, sys, tokenize, trace
-from nose.tools import eq_
+try:
+    from nose.tools import eq_
+except ImportError:
+    pass
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -44,7 +47,8 @@ def test_vartrace():
     _mod = __import__('ex_snoop')
     t.runfunc(_mod.test_tracelocals)
     del t.outvars['inner']   # a function
-    eq_( t.outvars, {'a': 2, 'longline': 'testme', 'john': 'stud', 'testfunc': 3, 'out': 'studstud'} )
+    eq_( t.outvars, {'a': 2, 'longline': 'testme', 'john': 'stud', 
+                     'testfunc': 3, 'out': 'studstud'} )
     if 0:
         print
         print '-'.join(t.lines[t.linerange[0]:t.linerange[1]])
