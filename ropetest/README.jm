@@ -1,0 +1,6 @@
+http://bitbucket.org/agr/ropemacs/src/2211b07a0c2d/README.txt
+
+Note that global commands
+have a ``C-x p`` prefix and local commands have a ``C-c r`` prefix.
+
+

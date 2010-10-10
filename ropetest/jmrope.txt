@@ -1,0 +1,4 @@
+(when nil
+  (pymacs-load "ropemacs" "rope-")
+  (setq ropemacs-confirm-saving nil))
+
