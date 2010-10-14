@@ -5,13 +5,18 @@ xref.py -- postprocess Etags database into call graph
 '''
 
 import optparse, os, re, sys
-from itertools import imap
+from itertools import ifilterfalse
 from nose.tools import eq_ as eq
-from operator import itemgetter
+# from operator import itemgetter
 
+
+IGNORELIST = frozenset(
+    'format int len range reduce set super type __init__'.split()
+    )
 
 # etags format:
-#	{tag_definition_text}<\x7f>{tagname}<\x01>{line_number},{byte_offset}
+#	{tag_definition_text}<\x7f>{tagname}
+#		<\x01>{line_number},{byte_offset}
 #
 def symref(tagdef, tagname, lineno, offset):
     return '%s\x7f%s\x01%d,%d' % (tagdef, tagname, lineno, offset)
@@ -30,7 +35,6 @@ def test_enum_pos():
 
 
 def callname_shouldskip(callname):
-    IGNORELIST = set('format int len range reduce set super type __init__'.split())
     if callname in IGNORELIST:
         return True
     magicpat = re.compile('^__[^_]+__$')
@@ -65,13 +69,25 @@ class TagsFile(list):
                     )
         outf.close()
 
+def get_srcpaths(paths, verbose):
+    def boringpath(path):
+        return (not path.endswith('.py')) or ('/lib/python' in path)
+
+    dirs = set()
+    for path in ifilterfalse(boringpath, paths):
+        if verbose:
+            pathdir = os.path.dirname(path)
+            if pathdir not in dirs:
+                print pathdir
+                dirs.add(pathdir)
+        yield path
 
 def main(argv):
     parser = optparse.OptionParser()
     parser.add_option(
         "-f", "--file", dest="filename",
         help="write report to FILE", metavar="FILE", 
-        default='xref.dat',
+        default='callers.tags',
         )
     parser.add_option(
         "-v", "--verbose",
@@ -83,7 +99,7 @@ def main(argv):
     if options.filename == '-':
         options.filename = '/dev/stdout'
     defpat = re.compile(
-        '^\s* (def|class)\s+(\w+)',
+        '^\s* (def|class) \s+ (\w+)',
         re.VERBOSE,
         )
     callpat = re.compile(
@@ -93,17 +109,8 @@ def main(argv):
 
     tagsf = TagsFile()
     testf = TagsFile()
-    dirs = set()
-    for path in paths:
-        if not path.endswith('.py'):
-            continue
-        if '/lib/python' in path:
-            continue
-        pathdir = os.path.dirname(path)
-        if options.verbose:
-            if pathdir not in dirs:
-                print pathdir
-                dirs.add(pathdir)
+
+    for path in get_srcpaths(paths, options.verbose):
         source = open(path, 'r').read()
 
         caller = None
