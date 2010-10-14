@@ -98,37 +98,41 @@ def main(argv):
     (options, paths) = parser.parse_args()
     if options.filename == '-':
         options.filename = '/dev/stdout'
-    callpat = re.compile(
-        # '(%s)\s*(\(.*\)?)',
-        '([A-Za-z_][A-Za-z0-9_]*)\s*\(',
-        )
 
     tagsf = TagsFile()
     testf = TagsFile()
 
     for path in get_srcpaths(paths, options.verbose):
         source = open(path, 'r').read()
-
-        for line,num,caller,begpos in sourcelines(
-            source, options.verbose,
-            ):
-            if not caller:
-                continue    # XXX?
-            for m in callpat.finditer(line):
-                callee = m.group(1)
-                if c_shouldskip(callee):
-                    continue
-                if options.verbose:
-                    print '- %s calls %s' % (
-                        caller[0].groups(), callee)
-                tagsf.append(
-                    path=path,
-                    tagdef=caller[0].group(0),
-                    tagname=callee,
-                    lineno=num+1, 
-                    offset=begpos,
-                    )
+        for num, callee, caller, begpos in src_callers(
+            source=source, verbose=options.verbose):
+            if options.verbose:
+                print '- %s calls %s' % (
+                    caller[0].groups(), callee)
+            tagsf.append(
+                path=path,
+                tagdef=caller[0].group(0),
+                tagname=callee,
+                lineno=num+1, 
+                offset=begpos,
+                )
     tagsf.writeto( options.filename )
+
+
+def src_callers(source, verbose):
+    callpat = re.compile(
+        # '(%s)\s*(\(.*\)?)',
+        '([A-Za-z_][A-Za-z0-9_]*)\s*\(',
+        )
+    for line,num,caller,begpos in sourcelines(source, verbose):
+        if not caller:
+            continue    # XXX?
+        for m in callpat.finditer(line):
+            callee = m.group(1)
+            if c_shouldskip(callee):
+                continue
+            yield num, callee, caller, begpos
+
 
 def sourcelines(source, verbose):
     defpat = re.compile(
