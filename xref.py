@@ -68,12 +68,16 @@ class TagsFile(list):
 
 def main(argv):
     parser = optparse.OptionParser()
-    parser.add_option("-f", "--file", dest="filename",
-                      help="write report to FILE", metavar="FILE", default='xref.dat',
-                      )
-    parser.add_option("-v", "--verbose",
-                      action="store_true", dest="verbose", default=False,
-                      )
+    parser.add_option(
+        "-f", "--file", dest="filename",
+        help="write report to FILE", metavar="FILE", 
+        default='xref.dat',
+        )
+    parser.add_option(
+        "-v", "--verbose",
+        action="store_true", dest="verbose", 
+        default=False,
+        )
 
     (options, paths) = parser.parse_args()
     if options.filename == '-':
@@ -102,26 +106,27 @@ def main(argv):
                 dirs.add(pathdir)
         source = open(path, 'r').read()
 
-        in_def = None
+        caller = None
         for num,line,begpos,_ in enum_pos(source.split('\n')):
             if options.verbose:
                 print '%2d %3d %s' % (num+1, begpos, line)
             m = defpat.match(line) # XX
             if m:
-                in_def = m.group(2), num+1, begpos
+                caller = m, num+1, begpos
                 continue
             for m in callpat.finditer(line):
-                callname = m.group(1)
-                if callname_shouldskip(callname):
+                callee = m.group(1)
+                if callname_shouldskip(callee):
                     continue
-                if not in_def:
+                if not caller:
                     continue    # XXX?
                 if options.verbose:
-                    print '- %s: callname %s%s' % (in_def[0], callname, '()')
+                    print '- %s calls %s' % (
+                        caller[0].groups(), callee)
                 tagsf.append(
                     path=path,
-                    tagdef=line,
-                    tagname=m.group(1),
+                    tagdef=caller[0].group(0),
+                    tagname=callee,
                     lineno=num+1, 
                     offset=begpos,
                     )
