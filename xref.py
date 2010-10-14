@@ -34,7 +34,7 @@ def test_enum_pos():
         )
 
 
-def callname_shouldskip(callname):
+def c_shouldskip(callname):
     if callname in IGNORELIST:
         return True
     magicpat = re.compile('^__[^_]+__$')
@@ -43,8 +43,8 @@ def callname_shouldskip(callname):
     return False
 
 def test_callname_shouldskip():
-    eq( callname_shouldskip('__argh__'), True )
-    eq( callname_shouldskip('beer'), False )
+    eq( c_shouldskip('__argh__'), True )
+    eq( c_shouldskip('beer'), False )
 
 
 
@@ -98,10 +98,6 @@ def main(argv):
     (options, paths) = parser.parse_args()
     if options.filename == '-':
         options.filename = '/dev/stdout'
-    defpat = re.compile(
-        '^\s* (def|class) \s+ (\w+)',
-        re.VERBOSE,
-        )
     callpat = re.compile(
         # '(%s)\s*(\(.*\)?)',
         '([A-Za-z_][A-Za-z0-9_]*)\s*\(',
@@ -113,20 +109,15 @@ def main(argv):
     for path in get_srcpaths(paths, options.verbose):
         source = open(path, 'r').read()
 
-        caller = None
-        for num,line,begpos,_ in enum_pos(source.split('\n')):
-            if options.verbose:
-                print '%2d %3d %s' % (num+1, begpos, line)
-            m = defpat.match(line) # XX
-            if m:
-                caller = m, num+1, begpos
-                continue
+        for line,num,caller,begpos in sourcelines(
+            source, options.verbose,
+            ):
+            if not caller:
+                continue    # XXX?
             for m in callpat.finditer(line):
                 callee = m.group(1)
-                if callname_shouldskip(callee):
+                if c_shouldskip(callee):
                     continue
-                if not caller:
-                    continue    # XXX?
                 if options.verbose:
                     print '- %s calls %s' % (
                         caller[0].groups(), callee)
@@ -138,6 +129,21 @@ def main(argv):
                     offset=begpos,
                     )
     tagsf.writeto( options.filename )
+
+def sourcelines(source, verbose):
+    defpat = re.compile(
+        '^\s* (def|class) \s+ (\w+)',
+        re.VERBOSE,
+        )
+    caller = None
+    for num,line,begpos,_ in enum_pos(source.split('\n')):
+        if verbose:
+            print '%2d %3d %s' % (num+1, begpos, line)
+        m = defpat.match(line) # XX
+        if m:
+            caller = m, num+1, begpos
+            continue
+        yield line, num, caller, begpos
 
 if __name__=='__main__':
     main(sys.argv)
