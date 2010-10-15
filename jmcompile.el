@@ -158,8 +158,10 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
     ; geopoi et al:
     (cond
      ((string-match "/apps/\\(.+?\\)/" srcpath)      (match-string-no-properties 1 srcpath))
-     ((string-match "/victoryM/" srcpath)	;XXX
-      "victoryM"))))
+     ((string-match "/victoryM/" srcpath)
+      "victoryM")
+     ((string-match "/users/" srcpath)
+      "users"))))
 
 ;; from server/tests.py:  format=appname: module
 ;;
