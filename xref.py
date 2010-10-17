@@ -6,8 +6,6 @@ xref.py -- postprocess Etags database into call graph
 
 import optparse, os, re, sys
 from itertools import ifilterfalse
-from nose.tools import eq_ as eq
-# from operator import itemgetter
 
 
 IGNORELIST = frozenset(
@@ -28,11 +26,6 @@ def enum_pos(lines):
         yield num, line, pos,nextpos
         pos = nextpos
 
-def test_enum_pos():
-    eq( list(enum_pos('tasty beer'.split(' '))),
-        [(0, 'tasty', 0, 6), (1, 'beer', 6, 11)],
-        )
-
 
 def c_shouldskip(callname):
     if callname in IGNORELIST:
@@ -41,10 +34,6 @@ def c_shouldskip(callname):
     if magicpat.match(callname):
         return True
     return False
-
-def test_callname_shouldskip():
-    eq( c_shouldskip('__argh__'), True )
-    eq( c_shouldskip('beer'), False )
 
 
 
