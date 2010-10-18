@@ -9,5 +9,5 @@ def ding(adj='tasty'):
 def zoot():
     ding()
 
-# output:
-# zoot -(calls)-> ding
+def zoot2():
+    ding()

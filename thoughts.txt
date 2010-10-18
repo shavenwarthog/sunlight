@@ -10,3 +10,5 @@ db: source func w/o test = highlighted
 db: source func annotated w/ callers, callees
 source: key creates testfunc in appropriate file
 
+
+cycle windows: source, source & test, x & results

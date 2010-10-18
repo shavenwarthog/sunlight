@@ -2,6 +2,10 @@ RECENT_PY := $(shell ls -1t *.py | egrep -v _flymake | head -1)
 
 all:
 
+.PHONY: tags
+tags TAGS:
+	etags *.py
+
 snoop:
 	nosetests -d ./snoop.py
 # 	nosetests --version
@@ -11,7 +15,11 @@ tweeze:
 	./tweezer.py
 #	python -m trace --report --coverdir=/tmp
 xref:
-	./xref.py -f - ex-xref.py
+	@echo "zoot calls ding"
+	@echo
+	./xref.py -v -f xref.dat ex-xref.py
+	cat xref.dat
+#	./xref.py -v -f - ex-xref.py
 
 .PHONY: elisp-doc.html
 elisp-doc.html:
@@ -28,10 +36,6 @@ elisp-doc.html:
 
 test-simplifyp:
 	./simplifyp.py err4.txt
-
-.PHONY: tags
-tags:
-	etags *.py
 
 test-chump:
 	./chump.py /tmp/project.tags
