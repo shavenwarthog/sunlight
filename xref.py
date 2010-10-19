@@ -5,13 +5,16 @@ xref.py -- postprocess Etags database into call graph
 '''
 
 import optparse, os, re, sys
-from itertools import imap
-from nose.tools import eq_ as eq
-from operator import itemgetter
+from itertools import ifilterfalse
 
+
+IGNORELIST = frozenset(
+    'format int len range reduce set super type __init__'.split()
+    )
 
 # etags format:
-#	{tag_definition_text}<\x7f>{tagname}<\x01>{line_number},{byte_offset}
+#	{tag_definition_text}<\x7f>{tagname}
+#		<\x01>{line_number},{byte_offset}
 #
 def symref(tagdef, tagname, lineno, offset):
     return '%s\x7f%s\x01%d,%d' % (tagdef, tagname, lineno, offset)
@@ -23,24 +26,14 @@ def enum_pos(lines):
         yield num, line, pos,nextpos
         pos = nextpos
 
-def test_enum_pos():
-    eq( list(enum_pos('tasty beer'.split(' '))),
-        [(0, 'tasty', 0, 6), (1, 'beer', 6, 11)],
-        )
 
-
-def callname_shouldskip(callname):
-    IGNORELIST = set('format int len range reduce set super type __init__'.split())
+def c_shouldskip(callname):
     if callname in IGNORELIST:
         return True
     magicpat = re.compile('^__[^_]+__$')
     if magicpat.match(callname):
         return True
     return False
-
-def test_callname_shouldskip():
-    eq( callname_shouldskip('__argh__'), True )
-    eq( callname_shouldskip('beer'), False )
 
 
 
@@ -65,67 +58,89 @@ class TagsFile(list):
                     )
         outf.close()
 
+def get_srcpaths(paths, verbose):
+    def boringpath(path):
+        return (not path.endswith('.py')) or ('/lib/python' in path)
+
+    dirs = set()
+    for path in ifilterfalse(boringpath, paths):
+        if verbose:
+            pathdir = os.path.dirname(path)
+            if pathdir not in dirs:
+                print pathdir
+                dirs.add(pathdir)
+        yield path
 
 def main(argv):
     parser = optparse.OptionParser()
-    parser.add_option("-f", "--file", dest="filename",
-                      help="write report to FILE", metavar="FILE", default='xref.dat',
-                      )
-    parser.add_option("-v", "--verbose",
-                      action="store_true", dest="verbose", default=False,
-                      )
+    parser.add_option(
+        "-f", "--file", dest="filename",
+        help="write report to FILE", metavar="FILE", 
+        default='callers.tags',
+        )
+    parser.add_option(
+        "-v", "--verbose",
+        action="store_true", dest="verbose", 
+        default=False,
+        )
 
     (options, paths) = parser.parse_args()
     if options.filename == '-':
         options.filename = '/dev/stdout'
-    defpat = re.compile(
-        '^\s* (def|class)\s+(\w+)',
-        re.VERBOSE,
-        )
+
+    tagsf = TagsFile()
+    testf = TagsFile()
+
+    for path in get_srcpaths(paths, options.verbose):
+        try:
+            source = open(path, 'r').read()
+        except IOError as exc:
+            print >>sys.stderr, str(exc)
+            continue
+        for num, callee, caller, begpos in src_callers(
+            source=source, verbose=options.verbose):
+            if options.verbose:
+                print '- %s calls %s' % (
+                    caller[0].groups(), callee)
+            tagsf.append(
+                path=path,
+                tagdef=caller[0].group(0),
+                tagname=callee,
+                lineno=num+1, 
+                offset=begpos,
+                )
+    tagsf.writeto( options.filename )
+
+
+def src_callers(source, verbose):
     callpat = re.compile(
         # '(%s)\s*(\(.*\)?)',
         '([A-Za-z_][A-Za-z0-9_]*)\s*\(',
         )
-
-    tagsf = TagsFile()
-    testf = TagsFile()
-    dirs = set()
-    for path in paths:
-        if not path.endswith('.py'):
-            continue
-        if '/lib/python' in path:
-            continue
-        pathdir = os.path.dirname(path)
-        if options.verbose:
-            if pathdir not in dirs:
-                print pathdir
-                dirs.add(pathdir)
-        source = open(path, 'r').read()
-
-        in_def = None
-        for num,line,begpos,_ in enum_pos(source.split('\n')):
-            if options.verbose:
-                print '%2d %3d %s' % (num+1, begpos, line)
-            m = defpat.match(line) # XX
-            if m:
-                in_def = m.group(2), num+1, begpos
+    for line,num,caller,begpos in sourcelines(source, verbose):
+        if not caller:
+            continue    # XXX?
+        for m in callpat.finditer(line):
+            callee = m.group(1)
+            if c_shouldskip(callee):
                 continue
-            for m in callpat.finditer(line):
-                callname = m.group(1)
-                if callname_shouldskip(callname):
-                    continue
-                if not in_def:
-                    continue    # XXX?
-                if options.verbose:
-                    print '- %s: callname %s%s' % (in_def[0], callname, '()')
-                tagsf.append(
-                    path=path,
-                    tagdef=line,
-                    tagname=m.group(1),
-                    lineno=num+1, 
-                    offset=begpos,
-                    )
-    tagsf.writeto( options.filename )
+            yield num, callee, caller, begpos
+
+
+def sourcelines(source, verbose):
+    defpat = re.compile(
+        '^\s* (def|class) \s+ (\w+)',
+        re.VERBOSE,
+        )
+    caller = None
+    for num,line,begpos,_ in enum_pos(source.split('\n')):
+        if verbose:
+            print '%2d %3d %s' % (num+1, begpos, line)
+        m = defpat.match(line) # XX
+        if m:
+            caller = m, num+1, begpos
+            continue
+        yield line, num, caller, begpos
 
 if __name__=='__main__':
     main(sys.argv)

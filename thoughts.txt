@@ -1,0 +1,14 @@
+edit source in one pane, tests in other
+source and test: lines w/ ok/err/fail = highlighted
+source: key jumps to testfunc; vice versa
+source: key runs test for this func, class, file, or module
+test handler customized per directory/project
+" func to path, testfunc to path
+
+LATER:
+db: source func w/o test = highlighted
+db: source func annotated w/ callers, callees
+source: key creates testfunc in appropriate file
+
+
+cycle windows: source, source & test, x & results

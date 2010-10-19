@@ -39,6 +39,7 @@
      '(
        ;; green project-specific highlights:
        ("twitter" (0 'compilation-info t)) ; bright green
+       ("image" (0 'compilation-info t))
 
        ;; yellow boxy generic markers:
        ("} != {" (0 'hi-yellow t))
