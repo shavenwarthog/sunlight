@@ -92,7 +92,11 @@ def main(argv):
     testf = TagsFile()
 
     for path in get_srcpaths(paths, options.verbose):
-        source = open(path, 'r').read()
+        try:
+            source = open(path, 'r').read()
+        except IOError as exc:
+            print >>sys.stderr, str(exc)
+            continue
         for num, callee, caller, begpos in src_callers(
             source=source, verbose=options.verbose):
             if options.verbose:

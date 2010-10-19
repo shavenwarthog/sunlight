@@ -152,11 +152,12 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 
   
     
-;; Django:
+;; XXXX
+;; Geodelic-style Django application names 
 (defun jmc-django-appname (&optional srcpath)
   (let ((srcpath (or srcpath buffer-file-name)))
-    ; geopoi et al:
     (cond
+     ((string-match "/openpub/" srcpath)	"openpub_users")
      ((string-match "/apps/\\(.+?\\)/" srcpath)
       (match-string-no-properties 1 srcpath))
      ((string-match "/\\(victoryM\\|users\\|toolbox\\)/" srcpath)
