@@ -1,10 +1,11 @@
 (defface acheck-pylint-error
   '((t :underline "red2"))
   "pylint error")
+(copy-face 'hi-red-b 'acheck-pylint-error)
 
 (defun acheck-check ()
   (interactive)
-  (setq acheck-proc (start-process "acheck" "*pylint*" "head" "-2" "pylint.out"))
+  (setq acheck-proc (start-process "acheck" "*pylint*" "head" "-20" "pylint.out"))
   (set-process-filter acheck-proc 'acheck-filter))
 
 (defun acheck-filter (proc string)
@@ -40,7 +41,8 @@
   (defun jmc-retest ()
     (elint-current-buffer)))
 
-  
+;; (defun jmc-retest ()
+;;   (acheck-check))
 
 
 
@@ -64,17 +66,19 @@
 		  (line-end-position num))))
 
 (defun acheck-parse (line)
-  (when (x-pylint-parse line)
-    (let ((ov (acheck-make-overlay (match-string 2 line))))
-      (overlay-put ov 'acheck t)
-      (acheck-pylint-annotate ov))))
+  (if (acheck-pylint-parse line)
+      (let ((ov (acheck-make-overlay (match-string 2 line))))
+	(overlay-put ov 'acheck t)
+	(acheck-pylint-annotate ov line))))
+;;    (error (format "parse: no, %s" line))))
 
 (defun acheck-parsebuf (bufstr)
-  (mapc acheck-parse (split-string bufstr "\n")))
+  (mapc 'acheck-parse (split-string bufstr "\n")))
 
 (defun jmc-retest ()
   (find-file-other-window "sunfudge.py")
-  (acheck-parse "sunfudge.py:1: [E, Fake] Undefined variable 'fudge'"))
+  (acheck-remove-overlays)
+  (acheck-parse "sunfudge.py:2: [E, Fake] Undefined variable 'fudge'"))
 ;; (jmc-retest)
   
 	     
