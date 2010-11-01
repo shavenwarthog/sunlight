@@ -66,10 +66,12 @@
 		  (line-end-position num))))
 
 (defun acheck-parse (line)
-  (if (acheck-pylint-parse line)
+  (when (acheck-pylint-parse line)
+    (save-excursion
+      (set-buffer (get-buffer "sunfudge.py"))
       (let ((ov (acheck-make-overlay (match-string 2 line))))
 	(overlay-put ov 'acheck t)
-	(acheck-pylint-annotate ov line))))
+	(acheck-pylint-annotate ov line)))))
 ;;    (error (format "parse: no, %s" line))))
 
 (defun acheck-parsebuf (bufstr)
@@ -78,7 +80,8 @@
 (defun jmc-retest ()
   (find-file-other-window "sunfudge.py")
   (acheck-remove-overlays)
-  (acheck-parse "sunfudge.py:2: [E, Fake] Undefined variable 'fudge'"))
+  (acheck-check))
+  ;; (acheck-parse "sunfudge.py:2: [E, Fake] Undefined variable 'fudge'"))
 ;; (jmc-retest)
   
 	     

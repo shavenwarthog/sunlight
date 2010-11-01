@@ -1,6 +1,53 @@
-http://bitbucket.org/agr/ropemacs/src/2211b07a0c2d/README.txt
+TWEAK/INFO:
+C-x p u		rope-undo
+M-/		rope-code-assist
+M-?		rope-lucky-assist
+C-c d		rope-show-doc
+C-c f		rope-find-occurrences
+C-c g		rope-goto-definition
+C-c r o		rope-organize-imports
+C-c r a c	rope-show-calltip
+C-c r a i	rope-find-implementations
+C-c r a j	rope-jump-to-global
+C-x p r		rope-redo
 
-Note that global commands
-have a ``C-x p`` prefix and local commands have a ``C-c r`` prefix.
+MODIFY:
+C-c r i		rope-inline
+C-c r l		rope-extract-variable
+C-c r m		rope-extract-method
+C-c r r		rope-rename
+C-c r s		rope-change-signature
+
+CREATE:
+C-c r f		rope-introduce-factory
+C-c r u		rope-use-function
+C-c r n c	rope-generate-class
+C-c r n f	rope-generate-function
+C-c r n m	rope-generate-module
+C-c r n p	rope-generate-package
+C-c r n v	rope-generate-variable
+
+HEAVY:
+C-c r x		rope-restructure
+
+EXTERNAL:
+C-c r v		rope-move
+C-c r 1 p	rope-module-to-package
+C-c r 1 r	rope-rename-current-module
+C-c r 1 v	rope-move-current-module
+C-x p n d	rope-create-directory
+C-x p n f	rope-create-file
+C-x p n m	rope-create-module
+C-x p n p	rope-create-package
+
+PROJECT:
+C-x p c		rope-project-config
+C-x p f		rope-find-file
+C-x p k		rope-close-project
+C-x p o		rope-open-project
+C-x p 4 f	rope-find-file-other-window
 
 
+-- doesnt work:
+
+$ easy_install --prefix=$HOME/local --editable --build-directory . rope

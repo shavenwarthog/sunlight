@@ -16,7 +16,6 @@
     (let* ((lineno (match-string 1 line))
 	   (symname (match-string 2 line))
 	   (oldlist (gethash symname suntag-define-hash)))
-      (message "oldlist: %s" oldlist)
       (puthash symname (cons lineno oldlist) suntag-define-hash))))
 
 (defun suntag-list ()
@@ -40,7 +39,7 @@
   (interactive)
   (let ((tagval (gethash "system" suntag-define-hash)))
     (if tagval
-	(goto-line (string-to-int tagval))
+	(goto-line (string-to-int (car tagval)))
       (error "No tags containing %s" tagname))))
 ;; (suntag-find-tag "system")
       
@@ -50,8 +49,8 @@
   
   
 ;; (defun jmc-retest () (suntag-parsefile "suntags.el"))
-(defun jmc-retest () 
-  (let ((h (make-hash-table :test 'equal)))
-    (puthash 'x (list "gin") h)
-    (puthash 'x (append (gethash 'x h) (list "beer")) h)
-    (message "woo: %s" (gethash 'x h))))
+;; (defun jmc-retest () 
+;;   (let ((h (make-hash-table :test 'equal)))
+;;     (puthash 'x (list "gin") h)
+;;     (puthash 'x (append (gethash 'x h) (list "beer")) h)
+;;     (message "woo: %s" (gethash 'x h))))
