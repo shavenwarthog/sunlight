@@ -8,7 +8,8 @@
 
 (defvar acheck-sourcebuf nil "Buffer containing source code")
 (defvar acheck-proc nil "acheck process")
-
+(defvar acheck-workfile-path nil "temporary copy of source code")
+;; XX buffer local
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: EMACS LISP
 
@@ -41,9 +42,10 @@
 ;;; 		 (propertize (concat "  " (match-string 5 line))
 ;;; 			     'face 'acheck-pylint-message))))
 
-(defun acheck-pylint-command ()
-  (format "pylint --errors-only -fparseable -iy %s"
-	  (buffer-file-name)))
+(defun acheck-pylint-command (workfile-path)
+  (split-string 
+   (format "pylint --errors-only -fparseable -iy %s"
+	   workfile-path)))
   
 (defun acheck-pylint-parse (line)
   (string-match (concat 
@@ -62,13 +64,26 @@
 
 ;; ::::::::::::::::::::::::::::::::::::::::::::::::::
 
+(defun acheck-write-workfile ()
+  ;; current directory, to preserve imports
+  ;; XX suffix
+  (setq acheck-workfile-path (concat (make-temp-name "ac_") ".py"))
+  (write-region nil nil acheck-workfile-path :visit -1))
+
+(defun acheck-delete-workfile ()
+  (when (file-exists-p acheck-workfile-path)
+      (delete-file acheck-workfile-path)
+      (setq acheck-workfile-path nil)))
+
 (defun acheck-check ()
   (interactive)
   (setq acheck-sourcebuf (current-buffer))
+  (acheck-write-workfile)
   (setq acheck-proc 
-	(start-process 
+	(apply 
+	 'start-process 
 	 "acheck" "*pylint*" 
-	 (acheck-pylint-command)))
+	 (acheck-pylint-command acheck-workfile-path)))
   (set-process-filter acheck-proc 'acheck-filter))
 
 (defun acheck-filter (proc string)
