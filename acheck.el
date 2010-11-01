@@ -6,6 +6,10 @@
 ;; (cadr (car (car elint-buffer-forms)))
 ;;    (if elint-top-form-logged
 
+(defvar acheck-sourcebuf nil "Buffer containing source code")
+(defvar acheck-proc nil "acheck process")
+
+
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: EMACS LISP
 
 (when nil
@@ -30,6 +34,17 @@
   "pylint error")
 ; (copy-face 'hi-red-b 'acheck-pylint-error)
 
+;; (defface acheck-pylint-message
+;;   '((t :foreground "gray60"))
+;;   "pylint message, to right of underlined code")
+;;;     (overlay-put ov 'after-string 
+;;; 		 (propertize (concat "  " (match-string 5 line))
+;;; 			     'face 'acheck-pylint-message))))
+
+(defun acheck-pylint-command ()
+  (format "pylint --errors-only -fparseable -iy %s"
+	  (buffer-file-name)))
+  
 (defun acheck-pylint-parse (line)
   (string-match (concat 
 		 "\\(.+?\\):\\([0-9]+\\):" ;; filename/1 : lineno/2 :
@@ -39,6 +54,7 @@
 		 )
 		line))
 
+  
 (defun acheck-pylint-annotate (ov line)
   (overlay-put ov 'face 'acheck-pylint-error)
   (overlay-put ov 'help-echo (match-string 5 line)))
@@ -48,7 +64,11 @@
 
 (defun acheck-check ()
   (interactive)
-  (setq acheck-proc (start-process "acheck" "*pylint*" "head" "-20" "pylint.out"))
+  (setq acheck-sourcebuf (current-buffer))
+  (setq acheck-proc 
+	(start-process 
+	 "acheck" "*pylint*" 
+	 (acheck-pylint-command)))
   (set-process-filter acheck-proc 'acheck-filter))
 
 (defun acheck-filter (proc string)
@@ -76,7 +96,7 @@
 (defun acheck-parse (line)
   (when (acheck-pylint-parse line)
     (save-excursion
-      (set-buffer (get-buffer "sunfudge.py"))
+      (set-buffer acheck-sourcebuf)
       (let ((ov (acheck-make-overlay (match-string 2 line))))
 	(overlay-put ov 'acheck t)
 	(acheck-pylint-annotate ov line)))))
