@@ -1,7 +1,50 @@
+;; acheck.el -- asynchronously check code in buffer, highlight issues
+
+;; Pylint 0.21.1
+;; pylint --errors-only -fparseable -iy sunfudge.py 
+
+;; (cadr (car (car elint-buffer-forms)))
+;;    (if elint-top-form-logged
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: EMACS LISP
+
+(when nil
+  (defadvice elint-log-message (after acheck-elint-log-message
+				      (errstr))
+    "Get form name, location, and error message."
+    (let* ((form (elint-top-form-form elint-top-form))
+	   (top (car form))
+	   (pos (elint-top-form-pos elint-top-form)))
+      (message "form: %s %s %s" form top pos)))
+  
+  (ad-activate 'elint-log-message)
+  
+  (defun jmc-test ()
+    (elint-current-buffer)))
+
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PYLINT
+
 (defface acheck-pylint-error
   '((t :underline "red2"))
   "pylint error")
 (copy-face 'hi-red-b 'acheck-pylint-error)
+
+(defun acheck-pylint-parse (line)
+  (string-match (concat 
+		 "\\(.+?\\):\\([0-9]+\\):" ;; filename/1 : lineno/2 :
+		 " \\[\\(.\\)"		  ;; error code/3
+		 "[ ,]*\\(.+?\\)\\]" ;; objname/4 (optional)
+		 " \\(.+\\)"	     ;; message/5
+		 )
+		line))
+
+(defun acheck-pylint-annotate (ov line)
+  (overlay-put ov 'face 'acheck-pylint-error)
+  (overlay-put ov 'help-echo (match-string 5 line)))
+
+
+;; ::::::::::::::::::::::::::::::::::::::::::::::::::
 
 (defun acheck-check ()
   (interactive)
@@ -24,46 +67,12 @@
   (interactive)
   (remove-overlays nil nil 'acheck t))
 
-;; (cadr (car (car elint-buffer-forms)))
-;;    (if elint-top-form-logged
-
-(when nil
-  (defadvice elint-log-message (after acheck-elint-log-message
-				      (errstr))
-    "Get form name, location, and error message."
-    (let* ((form (elint-top-form-form elint-top-form))
-	   (top (car form))
-	   (pos (elint-top-form-pos elint-top-form)))
-      (message "form: %s %s %s" form top pos)))
-  
-  (ad-activate 'elint-log-message)
-  
-  (defun jmc-retest ()
-    (elint-current-buffer)))
-
-;; (defun jmc-retest ()
-;;   (acheck-check))
-
-
-
-(defun acheck-pylint-parse (line)
-  (string-match (concat 
-		 "\\(.+?\\):\\([0-9]+\\):" ;; filename/1 : lineno/2 :
-		 " \\[\\(.\\)"		  ;; error code/3
-		 "[ ,]*\\(.+?\\)\\]" ;; objname/4 (optional)
-		 " \\(.+\\)"	     ;; message/5
-		 )
-		line))
-
-(defun acheck-pylint-annotate (ov line)
-  (overlay-put ov 'face 'acheck-pylint-error)
-  (overlay-put ov 'help-echo (match-string 5 line)))
-
 (defun acheck-make-overlay (lineno)
-  (goto-char (point-min))
-  (let (num (string-to-int lineno))
-    (make-overlay (line-beginning-position num)
-		  (line-end-position num))))
+  (save-excursion
+    (goto-line (string-to-number lineno))
+    (skip-chars-forward "[:blank:]")
+    (make-overlay (point) (line-end-position))))
+;; (defun jmc-test () (save-excursion (acheck-make-overlay "50")))
 
 (defun acheck-parse (line)
   (when (acheck-pylint-parse line)
@@ -77,7 +86,7 @@
 (defun acheck-parsebuf (bufstr)
   (mapc 'acheck-parse (split-string bufstr "\n")))
 
-(defun jmc-retest ()
+(defun jmc-test ()
   (find-file-other-window "sunfudge.py")
   (acheck-remove-overlays)
   (acheck-check))
