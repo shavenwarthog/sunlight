@@ -28,7 +28,7 @@
 (defface acheck-pylint-error
   '((t :underline "red2"))
   "pylint error")
-(copy-face 'hi-red-b 'acheck-pylint-error)
+; (copy-face 'hi-red-b 'acheck-pylint-error)
 
 (defun acheck-pylint-parse (line)
   (string-match (concat 
@@ -72,7 +72,6 @@
     (goto-line (string-to-number lineno))
     (skip-chars-forward "[:blank:]")
     (make-overlay (point) (line-end-position))))
-;; (defun jmc-test () (save-excursion (acheck-make-overlay "50")))
 
 (defun acheck-parse (line)
   (when (acheck-pylint-parse line)
@@ -81,7 +80,6 @@
       (let ((ov (acheck-make-overlay (match-string 2 line))))
 	(overlay-put ov 'acheck t)
 	(acheck-pylint-annotate ov line)))))
-;;    (error (format "parse: no, %s" line))))
 
 (defun acheck-parsebuf (bufstr)
   (mapc 'acheck-parse (split-string bufstr "\n")))
