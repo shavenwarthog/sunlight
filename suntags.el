@@ -1,9 +1,9 @@
 ;; suntags.el -- tags for multiple dimensions per item
 
-;; 1: defun system(cmd):
+;; 1: def system(cmd):
 ;; 2:   os.system(cmd)
 ;; 3:
-;; 4: defun testme():
+;; 4: def testme():
 ;; 5:   system("hostname")
 
 ;; 'system' defined line 1, called on line 2 and 5
@@ -18,19 +18,23 @@
 	   (oldlist (gethash symname suntag-define-hash)))
       (message "oldlist: %s" oldlist)
       (puthash symname (cons lineno oldlist) suntag-define-hash))))
-;; (suntag-parse "99:defun gin")
 
 (defun suntag-list ()
-  (maphash #'(lambda (key value) (message "woo: %s %s" key value))
-	   suntag-define-hash))
-;; (defalias 'jmc-retest 'suntag-list)
+  (with-output-to-temp-buffer "*Suntags List*"
+    (maphash #'(lambda (key value) (princ (format "%s\t%s\n" key value)))
+	     suntag-define-hash)))
 
+
+(defun jmc-retest ()
+  (clrhash suntag-define-table)
+  (suntag-parsefile "suntags.el")
+  (suntag-list))
 
 (defun suntag-parsefile (path)
   (setq suntag-define-hash (make-hash-table :test 'equal))
   (mapc 'suntag-parse 
 	(process-lines 
-	 "egrep" "-n" "--only-matching" "defun\s+([[:alnum:]]+)" path)))
+	 "egrep" "-n" "--only-matching" "def\s+([[:alnum:]]+)" path)))
 
 (defun suntag-find-tag (tagname)
   (interactive)
