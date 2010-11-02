@@ -10,6 +10,8 @@
 (defvar acheck-proc nil "acheck process")
 (defvar acheck-workfile-path nil "temporary copy of source code")
 ;; XX buffer local
+(defvar acheck-message-count nil "x")
+;; XX buffer local
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: EMACS LISP
 
@@ -130,6 +132,7 @@
 (defun acheck-parse (line)
   (when (and (acheck-pylint-parse line)
 	     (acheck-pylint-good-p line))
+    ;; (setq acheck-message-count (1+ acheck-message-count))
     (save-excursion
       (set-buffer acheck-sourcebuf)
       (let ((ov (acheck-make-overlay (match-string 2 line))))
@@ -137,7 +140,9 @@
 	(acheck-pylint-annotate ov line)))))
 
 (defun acheck-parsebuf (bufstr)
+  ;; (setq acheck-message-count 0)
   (mapc 'acheck-parse (split-string bufstr "\n")))
+;;   (message "acheck: %s messages" acheck-message-count))
 
 
 ;; XXX: interface with simple.el:next-error-function
