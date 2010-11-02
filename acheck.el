@@ -56,10 +56,24 @@
 		 )
 		line))
 
+;; XX: name: filter?
+(defun acheck-pylint-good-p (line)
+  (not (string-match-p ".+assert" line)))
+
   
-(defun acheck-pylint-annotate (ov line)
-  (overlay-put ov 'face 'acheck-pylint-error)
+(when nil
+  (defun acheck-pylint-annotate (ov line)
+    (overlay-put ov 'face 'acheck-pylint-error)
+    (let ((message (match-string 5 line)))
+      (if (string-match ".*'\\(.+?\\)'" message)
+	  (overlay-put ov 'help-echo 
+		       (overlay-put ov 'help-echo message))))))
+		       
+	
+ (defun acheck-pylint-annotate (ov line)
+   (overlay-put ov 'face 'acheck-pylint-error)
   (overlay-put ov 'help-echo (match-string 5 line)))
+
 
 
 ;; ::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -79,12 +93,14 @@
   (interactive)
   (setq acheck-sourcebuf (current-buffer))
   (acheck-write-workfile)
+  (acheck-remove-overlays)
   (setq acheck-proc 
 	(apply 
 	 'start-process 
 	 "acheck" "*pylint*" 
 	 (acheck-pylint-command acheck-workfile-path)))
-  (set-process-filter acheck-proc 'acheck-filter))
+  (set-process-filter acheck-proc 'acheck-filter)
+  (set-process-sentinel acheck-proc 'acheck-sentinel))
 
 (defun acheck-filter (proc string)
   (with-current-buffer (process-buffer proc)
@@ -98,6 +114,9 @@
 	(set-marker (process-mark proc) (point)))
       (if moving (goto-char (process-mark proc))))))
 
+(defun acheck-sentinel (proc string)
+  (acheck-delete-workfile))
+
 (defun acheck-remove-overlays ()
   (interactive)
   (remove-overlays nil nil 'acheck t))
@@ -109,7 +128,8 @@
     (make-overlay (point) (line-end-position))))
 
 (defun acheck-parse (line)
-  (when (acheck-pylint-parse line)
+  (when (and (acheck-pylint-parse line)
+	     (acheck-pylint-good-p line))
     (save-excursion
       (set-buffer acheck-sourcebuf)
       (let ((ov (acheck-make-overlay (match-string 2 line))))
@@ -119,9 +139,29 @@
 (defun acheck-parsebuf (bufstr)
   (mapc 'acheck-parse (split-string bufstr "\n")))
 
+
+;; XXX: interface with simple.el:next-error-function
+
+(defun acheck-next-error ()
+  (interactive)
+  (let ((nextov (next-overlay-change (line-end-position))))
+    (if (< nextov (point-max))
+	(progn
+	  (goto-char nextov)
+	  (message "acheck: %s" (flynote-current-message)))
+      (message "acheck: end"))))
+
+;; (defun acheck-next-error2 ()
+
+(global-set-key (kbd "<kp-insert>") 'acheck-next-error)
+(global-set-key (kbd "C-<kp-insert>") 'next-error)
+  
+
+
+
+
 (defun jmc-test ()
   (find-file-other-window "sunfudge.py")
-  (acheck-remove-overlays)
   (acheck-check))
   ;; (acheck-parse "sunfudge.py:2: [E, Fake] Undefined variable 'fudge'"))
 ;; (jmc-retest)
@@ -137,4 +177,14 @@
  ;; 	     'face 'acheck-pylint)
 
 
+;; (define-derived-mode acheck-display-mode python-mode "Ac"
+;;   (buffer-disable-undo)
+;;   (setq next-error-function 'acheck-next-error)
+;;   (setq next-error-last-buffer (current-buffer))
+;;   (define-key acheck-display-mode-map "\C-m" 'acheck-goto-expect)
+;;   (define-key acheck-display-mode-map "\C-c\C-c" 'acheck-goto-expect))
+
+;; (define-minor-mode acheck
+;;   "Check source"
+;;   nil " Ac")
 
