@@ -35,6 +35,10 @@
 (defface acheck-pylint-error
   '((t :underline "red2"))
   "pylint error")
+(defface acheck-pylint-warning
+  '((t :underline "IndianRed"))
+  "pylint warning")
+
 ; (copy-face 'hi-red-b 'acheck-pylint-error)
 
 ;; (defface acheck-pylint-message
@@ -44,9 +48,11 @@
 ;;; 		 (propertize (concat "  " (match-string 5 line))
 ;;; 			     'face 'acheck-pylint-message))))
 
+;; "pylint --errors-only -fparseable -iy %s"
+
 (defun acheck-pylint-command (workfile-path)
   (split-string 
-   (format "pylint --errors-only -fparseable -iy %s"
+   (format "pylint --disable=c -fparseable -iy %s"
 	   workfile-path)))
   
 (defun acheck-pylint-parse (line)
@@ -62,19 +68,40 @@
 (defun acheck-pylint-good-p (line)
   (not (string-match-p ".+assert" line)))
 
-  
-(when nil
-  (defun acheck-pylint-annotate (ov line)
-    (overlay-put ov 'face 'acheck-pylint-error)
-    (let ((message (match-string 5 line)))
-      (if (string-match ".*'\\(.+?\\)'" message)
-	  (overlay-put ov 'help-echo 
-		       (overlay-put ov 'help-echo message))))))
+;; (when nil
+;;   (defun acheck-pylint-annotate (ov line)
+;;     (overlay-put ov 'face 
+;; 		 (cond ((string= "W" (match-string 5 line))
+;; 		     'acheck-pylint-warning)
+;;     (let ((message (match-string 5 line)))
+;;       (if (string-match ".*'\\(.+?\\)'" message)
+;; 	  (overlay-put ov 'help-echo 
+;; 		       (overlay-put ov 'help-echo message))))))
 		       
+;;;; Compatibility
+(unless (fboundp 'apply-partially)
+  (defun apply-partially (fun &rest args)
+    "Return a function that is a partial application of FUN to ARGS.
+ARGS is a list of the first N arguments to pass to FUN.
+The result is a new function which does the same as FUN, except that
+the first N arguments are fixed at the values with which this function
+was called."
+    (lexical-let ((fun fun) (args1 args))
+      (lambda (&rest args2) (apply fun (append args1 args2))))))
 	
  (defun acheck-pylint-annotate (ov line)
-   (overlay-put ov 'face 'acheck-pylint-error)
-  (overlay-put ov 'help-echo (match-string 5 line)))
+   (defalias 'errcode= (apply-partially 'string= (match-string 3 line)))
+   ;; (message "beer: %s %s" (errcode= "E") (match-string 3 line))
+   (overlay-put 
+    ov 'face
+    (if (errcode= "W") 
+	'acheck-pylint-warning
+      'acheck-pylint-error))
+   (overlay-put ov 'help-echo (match-string 5 line)))
+
+
+(defun jmc-test () 
+  (acheck-parse "sunfudge.py:2: [E, Fake] Undefined variable 'fudge'"))
 
 
 
