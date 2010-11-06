@@ -1,5 +1,6 @@
 # nosetests test_xref.py
 
+import time
 from nose.tools import eq_ as eq
 from xref import c_shouldskip, enum_pos
 
@@ -12,3 +13,5 @@ def test_enum_pos():
         [(0, 'tasty', 0, 6), (1, 'beer', 6, 11)],
         )
 
+# def test_sleep():
+#     time.sleep(1)

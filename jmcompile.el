@@ -4,9 +4,6 @@
 ; in order of most common to least:
 ; ENTER: test quickly, current test func, or fast tests in this file
 ; ADD: test fully: all tests in this file
-; SUBTRACT: toggle direction
-;
-; "Direction" means XXX
 ;
 
 ;; ; GLOBALS:
@@ -153,7 +150,7 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
   
     
 ;; XXXX
-;; Geodelic-style Django application names 
+;; work-style Django application names 
 (defun jmc-django-appname (&optional srcpath)
   (let ((srcpath (or srcpath buffer-file-name)))
    (defun mymatch () (match-string-no-properties 1 srcpath))
@@ -163,28 +160,19 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
      ;; <bundlename>/apps/<name>/tests.py:
      ((string-match "/apps/\\(.+?\\)/" srcpath)	(mymatch))
      ;; <name>/tests.py:
+;;;   (let ((srcpath (or srcpath buffer-file-name))
+;;; 	);; XXX (match1	(apply-partially 'match-string-no-properties 1)))
+;;;     (cond
+;;;      ((string-match "/openpub/apps/users" srcpath)	"openpub_users")
+;;;      ((string-match "/openpub/apps/\\(.+\\)" srcpath)	(match1))
+;;;      ((string-match "/apps/\\(.+?\\)/" srcpath)
+;;;       (match-string-no-properties 1 srcpath))
      ((string-match "/\\(victoryM\\|users\\|toolbox\\)/" srcpath)
       (mymatch))
      ;; server/<subname>/tests.py:
      ((string-match "/server/\\(.+?\\)/" srcpath)	(mymatch))
      (t (error "%s: unknown appname" srcpath)))))
 
-;; from server/tests.py:  format=appname: module
-;;
-;;;     'elmer':    elmer.tests,
-;;;     'apis':     api_tests,
-;;;     'users':    users.tests,
-;;;     'shindig':  shindig.tests,
-;;;     'mongo':    mongo.test,
-;;;     'learning': learning.tests,
-;;;     'search':   search.tests,
-;;;     'victoryM': victoryM.tests,
-;;;     'openpub_users': openpub.apps.users.tests,
-;;;     'clustering': clustering.tests,
-;;;     'auth_wrap': auth_wrap_tests,
-;;;     'sjson': sjson.tests,
-;;;     'mongo_publish' : mongo.publishing.tests, 
-;;;     'mongo_user_migrate': mongo.migration.tests
      
 
 ;; (jmc-django-appname "/apps/zoot/allures.py") => "zoot"
@@ -326,15 +314,13 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 (defun project-active (srcpath)
   (string-match project-dir srcpath))	; XX: absdir
 
-;; (project-active "beer") => nil
-;; (project-active "/home/johnm/src/geodelic/server/apps/geopoi/tests.py") => 0 XX
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: DJANGO
 ;;
 ;; use normal "unittest" framework, run tests via external "run_tests" script
 
 (set-variable 'jmc-django-restart-command "cd %s ; make -C johnm restart")
-(set-variable 'jmc-django-test-command "cd %s ; johnm/run_tests %s")
+(set-variable 'jmc-django-test-command "cd %s ; bin/run_tests %s | egrep -v '^\+'")
 
 (defun jmc-django-restart ()
   "Restart Django"

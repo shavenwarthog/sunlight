@@ -53,6 +53,7 @@
 (defun acheck-pylint-command (workfile-path)
   (split-string 
    (format "pylint --disable=c,i -fparseable -iy %s"
+;;   (format "pylint -e -fparseable -iy %s"
 	   workfile-path)))
   
 (defun acheck-pylint-parse (line)
@@ -226,3 +227,4 @@ was called."
 ;;   "Check source"
 ;;   nil " Ac")
 
+(provide 'acheck)
