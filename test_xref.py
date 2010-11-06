@@ -13,5 +13,5 @@ def test_enum_pos():
         [(0, 'tasty', 0, 6), (1, 'beer', 6, 11)],
         )
 
-def test_sleep():
-    time.sleep(1)
+# def test_sleep():
+#     time.sleep(1)

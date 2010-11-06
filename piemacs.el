@@ -5,6 +5,22 @@
 (defvar piemacs-workfile-path nil "temporary copy of source code")
 ;; XX buffer local
 
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: NOSETESTS / COVERAGE
+;; (piemacs-nosetest "test_callname_shouldskip" 'piemacs-face-okay)
+;; (piemacs-nosetest "test_enum_pos" 'piemacs-face-okay)
+;; (piemacs-coverage-missing 20 20 32 32 42 42 45 59 62 72 75 112 116 127 131 143 146 146)
+
+(defface piemacs-coverage-missing
+  '((t :foreground "gray80" :underline "gray"))
+  "coverage missing for this line")
+
+;; (defun piemacs-coverage-missing (lines)
+;;   (let ((arg2))
+;;     (dolist (arg1 lines)
+;;       (setq line1 
+  
+;;   )
+
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PYLINT
 
 (defface piemacs-pylint-error
