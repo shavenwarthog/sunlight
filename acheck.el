@@ -52,7 +52,7 @@
 
 (defun acheck-pylint-command (workfile-path)
   (split-string 
-   (format "pylint --disable=c -fparseable -iy %s"
+   (format "pylint -e -fparseable -iy %s"
 	   workfile-path)))
   
 (defun acheck-pylint-parse (line)
