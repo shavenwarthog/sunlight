@@ -1,5 +1,5 @@
 ;; acheck.el -- asynchronously check code in buffer, highlight issues
-
+;;
 ;; Pylint 0.21.1
 ;; pylint --errors-only -fparseable -iy sunfudge.py 
 
@@ -52,15 +52,16 @@
 
 (defun acheck-pylint-command (workfile-path)
   (split-string 
-   (format "pylint --disable=c -fparseable -iy %s"
+   (format "pylint --disable=c,i -fparseable -iy %s"
 	   workfile-path)))
   
 (defun acheck-pylint-parse (line)
   (string-match (concat 
 		 "\\(.+?\\):\\([0-9]+\\):" ;; filename/1 : lineno/2 :
 		 " \\[\\(.\\)"		  ;; error code/3
-		 "[ ,]*\\(.+?\\)\\]" ;; objname/4 (optional)
-		 " \\(.+\\)"	     ;; message/5
+		 "\\([0-9]*\\)"		  ;; error id/4 (optional)
+		 "[ ,]*\\(.+?\\)\\]" ;; objname/5 (optional)
+		 " \\(.+\\)"	     ;; message/6
 		 )
 		line))
 
@@ -97,11 +98,16 @@ was called."
     (if (errcode= "W") 
 	'acheck-pylint-warning
       'acheck-pylint-error))
-   (overlay-put ov 'help-echo (match-string 5 line)))
+   (let ((note (format "%s (%s%s)" (match-string 6 line)
+		       (match-string 3 line)
+		       (match-string 4 line))))
+     (overlay-put ov 'help-echo note)))
 
 
 (defun jmc-test () 
-  (acheck-parse "sunfudge.py:2: [E, Fake] Undefined variable 'fudge'"))
+  (let ((line "sunfudge.py:2: [E0602, Fake] Undefined variable 'fudge'"))
+    (acheck-parse line)
+    (message "woo: %s" (match-string 4 line))))
 
 
 

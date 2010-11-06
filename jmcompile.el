@@ -32,7 +32,7 @@
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: UTILS
 
-(load "~/src/sunlight/jmc_python_pdb")	;XXX
+;; (load "~/src/sunlight/jmc_python_pdb")	;XXX
 
 ;; (defun jmc-has-word-p (word)
 ;;   "True if WORD found in next few lines."
@@ -156,12 +156,18 @@ Uses global switches 'jmc-nose-switches', then switches and args passed in.
 ;; Geodelic-style Django application names 
 (defun jmc-django-appname (&optional srcpath)
   (let ((srcpath (or srcpath buffer-file-name)))
+   (defun mymatch () (match-string-no-properties 1 srcpath))
     (cond
-     ((string-match "/openpub/" srcpath)	"openpub_users")
-     ((string-match "/apps/\\(.+?\\)/" srcpath)
-      (match-string-no-properties 1 srcpath))
+     ((string-match "/openpub/apps/\\(.+?\\)/" srcpath)
+      (format "openpub_%s" (mymatch)))
+     ;; <bundlename>/apps/<name>/tests.py:
+     ((string-match "/apps/\\(.+?\\)/" srcpath)	(mymatch))
+     ;; <name>/tests.py:
      ((string-match "/\\(victoryM\\|users\\|toolbox\\)/" srcpath)
-      (match-string-no-properties 1 srcpath)))))
+      (mymatch))
+     ;; server/<subname>/tests.py:
+     ((string-match "/server/\\(.+?\\)/" srcpath)	(mymatch))
+     (t (error "%s: unknown appname" srcpath)))))
 
 ;; from server/tests.py:  format=appname: module
 ;;
@@ -498,16 +504,16 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 ; (global-set-key [kp-delete] 'jmc-goto-last-import)
 
 
-(if (functionp 'apply-partially)
-    (defalias 'jmc-nose-program		
-      (apply-partially 'jmc-find "nosetests"))
-  (defun jmc-nose-program ()
-    (jmc-find "nosetests")))
-(defun jmc-nose-program ()
-  "nosetests"
-  ;; "/usr/bin/nosetests"
-  ;; "/home/johnm/local/bin/nosetests"
-  )
+;; (if (functionp 'apply-partially)
+;;     (defalias 'jmc-nose-program		
+;;       (apply-partially 'jmc-find "nosetests"))
+;;   (defun jmc-nose-program ()
+;;     (jmc-find "nosetests")))
+;; (defun jmc-nose-program ()
+;;   "nosetests"
+;;   ;; "/usr/bin/nosetests"
+;;   ;; "/home/johnm/local/bin/nosetests"
+;;   )
 
 ;; (jmc-nose-program) => "nosetests"
 
