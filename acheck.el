@@ -193,3 +193,4 @@
 ;;   "Check source"
 ;;   nil " Ac")
 
+(provide 'acheck)
