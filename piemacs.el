@@ -85,28 +85,45 @@
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: OVERLAY
 
-(defun piemacs-make-overlay (lineno)
+(require 'cl)
+
+(defun piemacs-make-ov-lineno (lineno)
   (save-excursion
     (goto-line lineno)
     (skip-chars-forward "[:blank:]")
     (make-overlay (point) (line-end-position))))
 
- (defun piemacs-ov (lineno msg)
-   (let ((ov (piemacs-make-overlay lineno)))
-     (overlay-put ov 'piemacs t)
-     (overlay-put ov 'face 'piemacs-pylint-error)
-     (overlay-put ov 'help-echo msg)))
+(defun* piemacs-ov (&key lineno message face linerange)
+  (let ((ov (piemacs-make-ov-lineno lineno)))
+    (overlay-put ov 'piemacs t)
+    (overlay-put ov 'face (or face 'piemacs-pylint-error))
+    (overlay-put ov 'help-echo message)))
 
-
+(when nil
+  (defun piemacs-command (path)
+    "Highlight the current line, add important hover message."
+    (list "echo" "(piemacs-ov :message \"beer\" :face 'highlight)")))
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: NOSETESTS / COVERAGE
 ;; (piemacs-nosetest "test_callname_shouldskip" 'piemacs-face-okay)
 ;; (piemacs-nosetest "test_enum_pos" 'piemacs-face-okay)
 ;; (piemacs-coverage-missing 20 20 32 32 42 42 45 59 62 72 75 112 116 127 131 143 146 146)
+(when nil
+  (mapc (apply-partially 'piemacs-ov :message "woo" :lineno)
+	(list 109)))
+  (mapc (apply-partially 'piemacs-ov :message "beer" :linerange)
+	(list (list 112 114)))
 
 (defface piemacs-coverage-missing
   '((t :foreground "gray80" :underline "gray"))
   "coverage missing for this line")
+
+;; standard Emacs faces:
+;; default	  fixed-pitch	    isearch	      secondary-selection
+;; bold		  variable-pitch    query-replace     trailing-whitespace
+;; italic	  shadow	    lazy-highlight    nobreak-space
+;; bold-italic	  highlight	    region	      escape-glyph
+;; underline
 
 ;; (defun piemacs-coverage-missing (lines)
 ;;   (let ((arg2))
