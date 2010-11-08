@@ -87,17 +87,43 @@
 
 (require 'cl)
 
+(defun piemacs-make-overlay (start end)
+  (let ((ov (make-overlay start end)))
+    (overlay-put ov 'piemacs t)
+    ov))
+
 (defun piemacs-make-ov-lineno (lineno)
   (save-excursion
     (goto-line lineno)
     (skip-chars-forward "[:blank:]")
-    (make-overlay (point) (line-end-position))))
+    (piemacs-make-overlay (point) (line-end-position))))
+
+(defun piemacs-make-ov-linerange (linerange)
+  "Highlight line range, inclusive."
+  (save-excursion
+    (let ((lstart (car linerange))
+	  (lend (cadr linerange)))
+      (goto-line lstart)
+      (piemacs-make-overlay (point) (line-end-position (1+ (- lend lstart)))))))
+
+;; (defun jmc-test () (overlay-put (piemacs-make-ov-linerange '(102 110)) 'face 'bold))
 
 (defun* piemacs-ov (&key lineno message face linerange)
-  (let ((ov (piemacs-make-ov-lineno lineno)))
-    (overlay-put ov 'piemacs t)
+  (let ((ov (cond
+	     (lineno (piemacs-make-ov-lineno lineno))
+	     (linerange (piemacs-make-ov-linerange linerange))
+	     (t (error "Unknown region")))))
     (overlay-put ov 'face (or face 'piemacs-pylint-error))
     (overlay-put ov 'help-echo message)))
+
+(defun* piemacs-ovs (&key message face lineranges)
+  (while lineranges
+    (let* ((lstart (pop lineranges))
+	   (lend (pop lineranges)))
+      (piemacs-ov :message message :face face :linerange (list lstart lend)))))
+
+;; (defun jmc-test () (piemacs-ovs :lineranges '(125 125 131 134) :face 'default))
+      
 
 (when nil
   (defun piemacs-command (path)
@@ -153,4 +179,4 @@
 
 (provide 'piemacs)
 
-(defun jmc-test () (piemacs-check))
+

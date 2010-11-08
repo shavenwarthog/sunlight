@@ -2,6 +2,7 @@
 
 import os, re, sys
 from itertools import chain, ifilter, imap
+# from nosetests import eq_ as eq
 
 # "ppylint.py:7: [E0001] invalid syntax"
 
@@ -32,7 +33,12 @@ def p_coverage(info):
                 yield arg.split('-')
             else:
                 yield arg,arg
-    print "(piemacs-coverage-missing '({0}))".format(' '.join(chain(*mklines())))
+    return "(piemacs-ovs :lineranges '({0}) :face 'bold)".format(
+        ' '.join(chain(*mklines())))
+
+# "(piemacs-coverage-missing '({0}))".format(' '.join(chain(*mklines())))
+def test_coverage():
+    eq(p_coverage({'missing': '1 2-3'}), 'blam')
 
 print '(piemacs-remove-overlays)'
 for line in os.popen(nosetests_command + ' ' + sys.argv[1]):
@@ -42,4 +48,4 @@ for line in os.popen(nosetests_command + ' ' + sys.argv[1]):
         continue
     m = coverage_pat.match(line)
     if m:
-        p_coverage(m.groupdict())
+        print p_coverage(m.groupdict())
