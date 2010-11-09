@@ -1,5 +1,8 @@
 ;; piemacs.el -- run process, eval lisp expressions
 
+(require 'cl)
+(add-to-list 'load-path "~/src/sunlight") ;XXX
+
 (defvar piemacs-sourcebuf nil "Buffer containing source code")
 (defvar piemacs-proc nil "piemacs process")
 (defvar piemacs-workfile-path nil "temporary copy of source code")
@@ -85,8 +88,6 @@
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: OVERLAY
 
-(require 'cl)
-
 (defun piemacs-make-overlay (start end)
   (let ((ov (make-overlay start end)))
     (overlay-put ov 'piemacs t)
@@ -106,8 +107,6 @@
       (goto-line lstart)
       (piemacs-make-overlay (point) (line-end-position (1+ (- lend lstart)))))))
 
-;; (defun jmc-test () (overlay-put (piemacs-make-ov-linerange '(102 110)) 'face 'bold))
-
 (defun* piemacs-ov (&key lineno message face linerange)
   (let ((ov (cond
 	     (lineno (piemacs-make-ov-lineno lineno))
@@ -122,8 +121,6 @@
 	   (lend (pop lineranges)))
       (piemacs-ov :message message :face face :linerange (list lstart lend)))))
 
-;; (defun jmc-test () (piemacs-ovs :lineranges '(125 125 131 134) :face 'default))
-      
 
 (when nil
   (defun piemacs-command (path)
@@ -131,6 +128,7 @@
     (list "echo" "(piemacs-ov :message \"beer\" :face 'highlight)")))
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: NOSETESTS / COVERAGE
+
 ;; (piemacs-nosetest "test_callname_shouldskip" 'piemacs-face-okay)
 ;; (piemacs-nosetest "test_enum_pos" 'piemacs-face-okay)
 ;; (piemacs-coverage-missing 20 20 32 32 42 42 45 59 62 72 75 112 116 127 131 143 146 146)
@@ -141,7 +139,10 @@
 	(list (list 112 114)))
 
 (defun piemacs-command (path)
-  (split-string "python2.6 ./pnosetests.py test_xref.py"))
+  (concat (piemacs-locate "pnosetests.py") path))
+;;	  (split-string "python2.6 ./pnosetests.py test_xref.py"))
+(defun piemacs-command (path)
+  (list (piemacs-locate "ppylint.py") path))
 
 (defface piemacs-coverage-missing
   '((t :box "gray80")) ;;:foreground "gray80" :underline "gray"))
@@ -160,6 +161,14 @@
 ;;       (setq line1 
   
 ;;   )
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
+
+(defun piemacs-locate (name):
+  (locate-library name t))		; look on load-path X
+
+(defun piemacs-status (msg)
+  (message "piemacs: %s" msg))
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PYLINT
 
