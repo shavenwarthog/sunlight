@@ -68,7 +68,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 (defun trimfat-highlight-setup ()
   (trimfat-hl-pats 'trimfat-okay (list "\\(?: ... \\)ok$" "^OK$"))
-  (trimfat-hl-pats 'trimfat-error (list " ... ERROR$")))
+  (trimfat-hl-pats 'trimfat-error (list " ... \\(ERROR\\|FAIL\\)$")))
   
 (defun trimfat-replace (regexp to-string)
   (goto-char (point-min))

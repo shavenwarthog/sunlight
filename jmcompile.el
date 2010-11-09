@@ -80,7 +80,7 @@ Run function 'test'.
 (defcustom jmc-nose-postproc "" "Post-processor, if any.")
 ;; (setq jmc-nose-postproc	" 2>&1 | ~/bin/simplifyp -")
 (setq jmc-nose-postproc	nil)
-;; (setq jmc-nose-program "/usr/bin/nosetests")
+(defun jmc-nose-program () "nosetests")
 
 (defcustom jmc-nose-exclude		nil  "Exclude these tests (regex)")
 ;; (setq jmc-nose-exclude		nil)
@@ -665,7 +665,7 @@ current (code) buffer."
 
 (defun jmc-key-test-class ()
   (interactive)
-  (jmc-custom 'jmc-django-test-class nil))
+  (jmc-custom 'jmc-django-test-class 'jmc-nose-test-class))
 
 (defun jmc-key-test-file ()
   (interactive)

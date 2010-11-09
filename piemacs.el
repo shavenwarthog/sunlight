@@ -140,8 +140,11 @@
   (mapc (apply-partially 'piemacs-ov :message "beer" :linerange)
 	(list (list 112 114)))
 
+(defun piemacs-command (path)
+  (split-string "python2.6 ./pnosetests.py test_xref.py"))
+
 (defface piemacs-coverage-missing
-  '((t :foreground "gray80" :underline "gray"))
+  '((t :box "gray80")) ;;:foreground "gray80" :underline "gray"))
   "coverage missing for this line")
 
 ;; standard Emacs faces:
