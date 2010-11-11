@@ -1,0 +1,26 @@
+johnm/src/geodelic/server/elmer_settings.py
+id/memcachedb.pid
+NGINX_DIR=/home/johnm/src/geodelic/deps/nginx
+:/home/johnm/src/geodelic/deps/pgpool/lib:/home/johnm/src/geodelic/deps/libevent/lib:/home/johnm/src/geodelic/deps/berkeleydb/lib:/home/johnm/src/geodelic/deps/proj4/lib:/home/johnm/src/geodelic/deps/boost/lib:/home/johnm/src/geodelic/deps/thrift/lib:/home/johnm/src/geodelic/deps/openssl/lib:/home/johnm/src/geodelic/deps/libjpeg/lib
+pass=Ig0qVncb
+
+.ERROR:root:Error during registration: AccountException()
+.F.
+======================================================================
+FAIL: testRegistrationAlreadyPending (openpub.apps.users.tests.big.RegistrationControllerTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/johnm/src/geodelic/openpub/apps/users/tests/big.py", line 93, in testRegistrationAlreadyPending
+    t_util.assertHtml( t_util.post_register(self), 'xEmail Confirmation' )
+  File "/home/johnm/src/geodelic/openpub/apps/users/tests/t_util.py", line 13, in assertHtml
+    assert substring in resp.content, resp.content
+AssertionError: 
+
+free beer
+
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 2.021s
+
+FAILED (failures=1)
