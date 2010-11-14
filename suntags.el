@@ -43,9 +43,9 @@
 	   "egrep" "-n" "--only-matching" "def\s+([[:alnum:]]+)" path))))
 
 (defun suntag-append (table words)
-  (let* ((symname (nth 2 words))
+  (let* ((symname (car words))
 	 (oldlist (gethash symname table)))
-    (puthash symname (cons words oldlist) table)))
+    (puthash symname (cons (cdr words) oldlist) table)))
 
 (defun suntag-parse-calledby (path)
   (setq suntag-calledby-table (make-hash-table :test 'equal))

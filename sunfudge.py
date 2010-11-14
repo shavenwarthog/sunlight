@@ -26,7 +26,7 @@ def sun_verify(method):
 
 class StringEqual(ValueTest):
     arg_method = 'stringeq'
-    def __init__(self, okaystr=None): # pylint: disable-msg=W0231
+    def __init__(self, okaystr=None): # pylint: disable=W0231
         self.okaystr = okaystr
     def __eq__(self,other):
         if self.okaystr is None:
