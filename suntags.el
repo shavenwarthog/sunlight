@@ -6,7 +6,7 @@
 ;; 6: def testme():
 ;; 7:   system("hostname")
 
-;; 'system' defined line 3, called on line 7
+;; 'system' defined line 3, called on line 7. Textually, it's also called on line 4.
 
 (defvar suntag-define-table (make-hash-table :test 'equal)
   "Hash of symbol definitions.")
@@ -28,36 +28,36 @@
   (suntag-parse "suntags.el")
   (suntag-list))
 
-(defun suntag-p-defs (table line)
-  (when (string-match "\\([0-9]+\\):.+ \\(.+\\)" line)
-    (let* ((lineno (match-string 1 line))
-	   (symname (match-string 2 line))
-	   (oldlist (gethash symname hash)))
-      (puthash symname (cons lineno oldlist) hash))))
-
-(defun suntag-parse-defs (path)
-  (setq suntag-define-table (make-hash-table :test 'equal))
-  (mapc (apply-partially 'suntag-p-defs suntag-define-table)
-	(process-lines 
-	 "egrep" "-n" "--only-matching" "def\s+([[:alnum:]]+)" path)))
-
-(defun suntag-p-calledby (table line)
-  (let ((words (split-string line)))
-    (message "woo")
-    (when (= 4 (length words))
-      (let* ((lineno (cadr words))
-	     (symname (nth 2 words))
+(when nil				;; egrep-style
+  (defun suntag-p-defs (table line)
+    (when (string-match "\\([0-9]+\\):.+ \\(.+\\)" line)
+      (let* ((lineno (match-string 1 line))
+	     (symname (match-string 2 line))
 	     (oldlist (gethash symname table)))
-	(puthash symname (cons (cons lineno (nth 3 words)) oldlist) table)))))
+	(puthash symname (cons lineno oldlist) table))))
+  
+  (defun suntag-parse-defs (path)
+    (setq suntag-define-table (make-hash-table :test 'equal))
+    (mapc (apply-partially 'suntag-p-defs suntag-define-table)
+	  (process-lines 
+	   "egrep" "-n" "--only-matching" "def\s+([[:alnum:]]+)" path))))
+
+(defun suntag-append (table words)
+  (let* ((symname (nth 2 words))
+	 (oldlist (gethash symname table)))
+    (puthash symname (cons words oldlist) table)))
 
 (defun suntag-parse-calledby (path)
   (setq suntag-calledby-table (make-hash-table :test 'equal))
-  (mapc (apply-partially 'suntag-p-calledby suntag-calledby-table)
-	(process-lines "python2.6" "./calledby.py" path)))
-
+  (setq suntag-define-table (make-hash-table :test 'equal))
+  (dolist (line (process-lines "python2.6" "./calledby.py" path))
+    (let ((words (split-string line)))
+      (if (= 4 (length words))
+	  (suntag-append suntag-calledby-table words)
+	(suntag-append suntag-define-table words)))))
+  
 (defun suntag-parse (path)
-  (suntag-parse-calledby path)
-  (suntag-parse-defs path))
+  (suntag-parse-calledby path))
 
 (defun suntag-find-tag (tagname)
   (interactive)
@@ -66,16 +66,4 @@
 	(goto-line (string-to-int (car tagval)))
       (error "No tags containing %s" tagname))))
 
-;; (suntag-find-tag "system")
-      
-;; (gethash "system" suntag-define-table)
-
-;;   (interactive (find-tag-interactive "Find tag: "))
-  
-  
-;; (defun jmc-retest () (suntag-parsefile "suntags.el"))
-;; (defun jmc-retest () 
-;;   (let ((h (make-table-table :test 'equal)))
-;;     (puthash 'x (list "gin") h)
-;;     (puthash 'x (append (gethash 'x h) (list "beer")) h)
-;;     (message "woo: %s" (gethash 'x h))))
+(provide 'suntags)
