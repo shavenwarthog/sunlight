@@ -2,6 +2,13 @@ RECENT_PY := $(shell ls -1t *.py | egrep -v _flymake | head -1)
 
 all:
 
+# .PHONY: src-paths.dat
+# src-paths.dat:
+# time find ../geodelic/packages -name '*.py' > $@
+# head $@
+
+# 	etags -o - *py
+
 .PHONY: tags
 tags TAGS:
 	etags *.py
@@ -54,6 +61,3 @@ test:
 
 test-update:
 	./update-tags ~/src/*/setup.py $(PWD)
-
-zoot:
-	cat err0706.txt

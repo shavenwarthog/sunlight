@@ -59,7 +59,7 @@
 (defun suntag-parse (path)
   (suntag-parse-calledby path))
 
-(defun suntag-find-tag (tagname)
+(defun suntag-find-tag (tagname &optional next-p)
   (interactive)
   (let ((tagval (gethash "system" suntag-define-table)))
     (if tagval
