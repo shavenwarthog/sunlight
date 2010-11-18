@@ -191,8 +191,5 @@
 
 (global-set-key (kbd "<kp-insert>") 'piemacs-next-error)
 (global-set-key (kbd "C-<kp-insert>") 'next-error)
-
-
+  
 (provide 'piemacs)
-
-

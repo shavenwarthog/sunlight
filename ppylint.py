@@ -29,7 +29,7 @@ def main(path):
     for m in ifilter(None, imap(pylint_pat.match, lines)):
         mname,mline,mstatus,mcode,mmsg = m.groups()
         stat.setdefault(mstatus, []).append('')
-        if mstatus in 'C':
+        if mstatus in 'CRI':
             continue
         face = 'piemacs-pylint-error'
         print '(piemacs-ov :lineno %s :message "%s" :face \'%s)' % (

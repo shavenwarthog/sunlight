@@ -44,6 +44,7 @@
 
 (set-face-attribute 'trimfat-error nil :background "firebrick3")
 
+;; trimfat-highlight
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
@@ -67,6 +68,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 
 (defun trimfat-highlight-setup ()
+  (trimfat-hl-pats 'trimfat-okay (list "!="))
   (trimfat-hl-pats 'trimfat-okay (list "\\(?: ... \\)ok$" "^OK$"))
   (trimfat-hl-pats 'trimfat-error (list " ... \\(ERROR\\|FAIL\\)$")))
   
@@ -78,7 +80,7 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 (defun trimfat-test ()
   (toggle-read-only -1)			;; XX gauche
   (save-excursion
-    (trimfat-replace "/home.+src/[^/]+/" "")))
+    (trimfat-replace "/home.+src/[^/]+/" ""))) ;; XX
 ;; (add-hook 'compilation-filter-hook 'trimfat-test)
 
 
