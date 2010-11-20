@@ -1,36 +1,44 @@
 #!/usr/bin/env python2.6
 
-import glob, itertools, sys, token, tokenize
+import glob, itertools, sys, time, token, tokenize
+from nose.tools import eq_ as eq
 
-
-def show(sourcefunc):
-    ERR = token.ERRORTOKEN
+def fastcheck(source):
     try:
-        for info in tokenize.generate_tokens(sourcefunc):
-            print '\t',token.tok_name[info[0]], info[1:]
-            if info[0]==ERR:
-                _ttype,tstring,_st,_end,_tline = info
-                print _st, tstring 
-                return
-    except tokenize.TokenError, exc:
-        print exc[1], exc[0]    # "EOF in multi-line statement"
-
-SRC='''
-def zoot():
- x = 5)
-y = 3
-'''
-
-def timetest():
-    big = itertools.chain( ((path,open(path).readline) for path in glob.glob('ex-*.py')) )
-    for path,func in big:
-        print path
-        show(func)
-
-if __name__=='__main__':
-    try:
-        print compile('x=', '<string>', 'exec')
+        code = compile(source, '<string>', 'exec')
+        # print code
+        return
     except SyntaxError, exc:
-        print repr(exc)
-        
-    sys.exit(1)
+        # print repr(exc)
+        msg,(_,errline,errpos,src) = exc
+        del exc
+        del source
+        del _
+        return locals()
+        # return '(fastcheck-err %s %s "%s")' % (errline, errpos, msg)
+
+def test_eof():
+    eq( fastcheck('x='), 
+        {'errline': 1, 'msg': 'unexpected EOF while parsing', 'errpos': 2, 'src': 'x='})
+    eq( fastcheck(' x=5'), 
+        {'errline': 1, 'src': ' x=5', 'errpos': 1, 'msg': 'unexpected indent'} )
+    eq( fastcheck('x=5\nif 1: y=3'), None)
+    eq( fastcheck('x=5\n y=3'),
+        {'errline': 2, 'src': ' y=3', 'errpos': 1, 'msg': 'unexpected indent'})
+    eq( fastcheck('x=5)'), 
+        {'errline': 1, 'src': 'x=5)', 'errpos': 4, 'msg': 'unexpected EOF while parsing'})
+
+def test_big():
+    source = open('../flynote/big.py').read()
+    loops = 10
+    t = time.time()
+    for _ in range(loops):
+        fastcheck(source)
+    elapsed = time.time()-t
+    print int((4734*loops) / elapsed), 'lines per second'
+
+if 0:
+    def test_timer():
+        t = timeit.Timer('fastcheck()',
+                         'from __main__ import fastcheck')
+        print t.timeit(number=100000)
