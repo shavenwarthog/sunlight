@@ -3,6 +3,7 @@
 (require 'cl)
 (add-to-list 'load-path "~/src/sunlight") ;XXX
 
+(defvar piemacs-command-function nil "Function returning shell command")
 (defvar piemacs-sourcebuf nil "Buffer containing source code")
 (defvar piemacs-proc nil "piemacs process")
 (defvar piemacs-workfile-path nil "temporary copy of source code")
@@ -24,8 +25,9 @@
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: INTERACTIVE
 
-(defun piemacs-command (path)
-  (list "date" "+(message \"it is now %c\")"))
+(when nil
+  (defun piemacs-date-command (path)
+    (list "date" "+(message \"it is now %c\")")))
 
 (defun piemacs-checkable ()
   (eq 'python-mode major-mode))
@@ -36,10 +38,10 @@
     (setq piemacs-sourcebuf (current-buffer))
     (piemacs-write-workfile)
     (piemacs-remove-overlays)
-    (let* ((cmd (piemacs-command piemacs-workfile-path))
+    (let* ((cmd (funcall piemacs-command-function piemacs-workfile-path))
 	   (bufname (format "*piemacs: %s*" (car cmd))))
       (setq piemacs-proc 
-	    (apply 'start-process "piemacs" bufname (car cmd) (cdr cmd)))
+	    (apply 'start-process-shell-command "piemacs" bufname (car cmd) (cdr cmd)))
       (with-current-buffer (process-buffer piemacs-proc)
 	(insert (format "command: %s\n\n" cmd))
 	(goto-char (process-mark piemacs-proc))))
@@ -127,9 +129,29 @@
 
 
 (when nil
-  (defun piemacs-command (path)
+  (defun piemacs-echo-command (path)
     "Highlight the current line, add important hover message."
     (list "echo" "(piemacs-ov :message \"beer\" :face 'highlight)")))
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: FASTCHECK
+;; highlight Python syntax errors
+
+(defface fastcheck-face
+  '((t :box t))
+  ".")
+
+(defun fastcheck-command (workpath)
+  (list "python2.6" "./fastcheck.py" "<" workpath))
+
+;; (funcall piemacs-command "beer")
+
+(defun fastcheck-err (lineno errpos message)
+  (message "fastcheck: +%s '%s'" lineno message)
+  (piemacs-ov :lineno lineno :message message :face 'fastcheck-face))
+
+
+(defun piemacs-set-fastcheck ()
+  (setq piemacs-command-function 'fastcheck-command))
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: NOSETESTS / COVERAGE
 
