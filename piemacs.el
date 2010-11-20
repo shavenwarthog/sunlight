@@ -153,6 +153,7 @@
 (defun piemacs-set-fastcheck ()
   (setq piemacs-command-function 'fastcheck-command))
 
+
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: NOSETESTS / COVERAGE
 
 ;; (piemacs-nosetest "test_callname_shouldskip" 'piemacs-face-okay)
@@ -164,15 +165,16 @@
   (mapc (apply-partially 'piemacs-ov :message "beer" :linerange)
 	(list (list 112 114)))
 
-(defun piemacs-command (path)
-  (concat (piemacs-locate "pnosetests.py") path))
-;;	  (split-string "python2.6 ./pnosetests.py test_xref.py"))
-(defun piemacs-command (path)
-  (list (piemacs-locate "ppylint.py") path))
-
-(defface piemacs-coverage-missing
+(defface coverage-missing
   '((t :box "gray80")) ;;:foreground "gray80" :underline "gray"))
   "coverage missing for this line")
+
+(defun nosetests-command (path)
+  (concat (piemacs-locate "pnosetests.py") path))
+;;	  (split-string "python2.6 ./pnosetests.py test_xref.py"))
+
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PYLINT
 
 ;; standard Emacs faces:
 ;; default	  fixed-pitch	    isearch	      secondary-selection
@@ -181,12 +183,6 @@
 ;; bold-italic	  highlight	    region	      escape-glyph
 ;; underline
 
-;; (defun piemacs-coverage-missing (lines)
-;;   (let ((arg2))
-;;     (dolist (arg1 lines)
-;;       (setq line1 
-  
-;;   )
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
@@ -205,10 +201,14 @@
   '((t :underline "IndianRed"))
   "pylint warning")
 
-(defun piemacs-pylint-command (workpath)
-  (list "python" "./ppylint.py" workpath))
+(defun pylint-command (path)
+  (list (piemacs-locate "ppylint.py") path))
 
-	
+(defun piemacs-set-pylint ()
+  (setq piemacs-command-function 'pylint-command))
+
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: 	
 
 
 (global-set-key (kbd "<kp-insert>") 'piemacs-next-error)
