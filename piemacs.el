@@ -182,6 +182,15 @@
 	   (lend (pop lineranges)))
       (piemacs-ov :message message :face face :linerange (list lstart lend)))))
 
+(defun* piemacs-ov-pos (&key lineno col message face)
+  (save-excursion
+    (goto-line lineno)
+    (let* ((pos (+ (point) col))
+	   (ov (piemacs-make-overlay pos (1+ pos))))
+      (overlay-put ov 'face (or face 'piemacs-pylint-error))
+      (when message
+	(overlay-put ov 'help-echo message)))))
+
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: FASTCHECK
