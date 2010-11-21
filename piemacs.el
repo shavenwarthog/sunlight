@@ -3,13 +3,14 @@
 (require 'cl)
 (add-to-list 'load-path "~/src/sunlight") ;XXX
 
+;; XX buffer local:
 (defvar piemacs-command-function nil "Function returning shell command")
+(defvar piemacs-check-function nil "Function that checks current buffer")
 (defvar piemacs-sourcebuf nil "Buffer containing source code")
 (defvar piemacs-proc nil "piemacs process")
 (defvar piemacs-workfile-path nil "temporary copy of source code")
-;; XX buffer local
 
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: BASE
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
 (defun piemacs-write-workfile ()
   ;; current directory, to preserve imports
@@ -22,62 +23,21 @@
       (delete-file piemacs-workfile-path)
       (setq piemacs-workfile-path nil)))
 
+(defun piemacs-locate (name):
+  (locate-library name t))		; look on load-path X
 
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: INTERACTIVE
-
-(when nil
-  (defun piemacs-date-command (path)
-    (list "date" "+(message \"it is now %c\")")))
+(defun piemacs-status (msg)
+  (message "piemacs: %s" msg))
 
 (defun piemacs-checkable ()
   (eq 'python-mode major-mode))
 
-(defun piemacs-check-once ()
-  (interactive)
-  (when (piemacs-checkable)
-    (setq piemacs-sourcebuf (current-buffer))
-    (piemacs-write-workfile)
-    (piemacs-remove-overlays)
-    (let* ((cmd (funcall piemacs-command-function piemacs-workfile-path))
-	   (bufname (format "*piemacs: %s*" (car cmd))))
-      (setq piemacs-proc 
-	    (apply 'start-process-shell-command "piemacs" bufname (car cmd) (cdr cmd)))
-      (with-current-buffer (process-buffer piemacs-proc)
-	(insert (format "command: %s\n\n" cmd))
-	(goto-char (process-mark piemacs-proc))))
-    (set-process-filter piemacs-proc 'piemacs-filter)
-    (set-process-sentinel piemacs-proc 'piemacs-sentinel)))
 
-(defun piemacs-start ()
-  (let* ((cmd (funcall piemacs-command-function))
-	 (bufname (format "*piemacs: %s*" (car cmd))))
-    (setq piemacs-proc 
-	  (apply 'start-process-shell-command "piemacs" bufname (car cmd) (cdr cmd)))
-    (with-current-buffer (process-buffer piemacs-proc)
-      (insert (format "command: %s\n\n" cmd))
-      (goto-char (process-mark piemacs-proc))))
-  (set-process-filter piemacs-proc 'piemacs-filter)
-  (set-process-sentinel piemacs-proc 'piemacs-sentinel))
-
-(defun piemacs-stopped ()
-  (or (null piemacs-proc) 
-      (> (process-exit-status piemacs-proc) 0)))
-
-(defun piemacs-restart ()
-  (when (piemacs-stopped)
-    (piemacs-start)))
-
-(defun piemacs-stop ()
-  (when (not (piemacs-stopped))
-    (delete-process piemacs-proc)))
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: INTERACTIVE
 
 (defun piemacs-check ()
   (interactive)
-  (when (piemacs-checkable)
-    (setq piemacs-sourcebuf (current-buffer))
-    (piemacs-remove-overlays)
-    (piemacs-restart)
-    (process-send-region piemacs-proc (point-min) (point-max))))
+  (funcall piemacs-check-function))
 
 ;;    (process-send-string piemacs-proc ">3\tx=\n")
 
@@ -98,7 +58,68 @@
       (message "piemacs: end"))))
 
 
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: PROCESS/PARSE
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PROC START/STOP
+
+(defun piemacs-check-sync ()
+  "Sync: call (piemacs-command-function workfile-path), proc dies after check"
+  (interactive)
+  (when (piemacs-checkable)
+    (setq piemacs-sourcebuf (current-buffer))
+    (piemacs-write-workfile)
+    (piemacs-remove-overlays)
+    (let* ((cmd (funcall piemacs-command-function piemacs-workfile-path))
+	   (bufname (format "*piemacs: %s*" (car cmd))))
+      (setq piemacs-proc 
+	    (apply 'start-process-shell-command "piemacs" bufname (car cmd) (cdr cmd)))
+      (with-current-buffer (process-buffer piemacs-proc)
+	(insert (format "command: %s\n\n" cmd))
+	(goto-char (process-mark piemacs-proc))))
+    (set-process-filter piemacs-proc 'piemacs-filter)
+    (set-process-sentinel piemacs-proc 'piemacs-sentinel)))
+
+(defun piemacs-start ()
+  "Async: start proc server, each check sends buffer-contents, proc remains."
+  (let* ((cmd (funcall piemacs-command-function))
+	 (bufname (format "*piemacs: %s*" (car cmd))))
+    (setq piemacs-proc 
+	  (apply 'start-process-shell-command "piemacs" bufname (car cmd) (cdr cmd)))
+    (with-current-buffer (process-buffer piemacs-proc)
+      (insert (format "command: %s\n\n" cmd))
+      (goto-char (process-mark piemacs-proc))))
+  (set-process-filter piemacs-proc 'piemacs-filter)
+  (set-process-sentinel piemacs-proc 'piemacs-sentinel))
+
+(defun piemacs-stopped ()
+  (or (null piemacs-proc) 
+      (> (process-exit-status piemacs-proc) 0)))
+
+(defun piemacs-restart ()
+  (interactive)
+  (piemacs-stop)
+  ;; (when (piemacs-stopped)
+  (piemacs-start))
+
+(defun piemacs-stop ()
+  (interactive)
+  (when (not (piemacs-stopped))
+    (delete-process piemacs-proc)))
+
+;; XX: assumes current buffer
+(defun piemacs-send-buffer ()
+  (with-current-buffer piemacs-sourcebuf
+    (process-send-string piemacs-proc (format ">%d\t" (- (point-max) (point-min))))
+    (process-send-region piemacs-proc (point-min) (point-max))))
+
+(defun piemacs-check-with-server ()
+  (when (piemacs-checkable)
+    (setq piemacs-sourcebuf (current-buffer))
+    (piemacs-remove-overlays)
+    (when (piemacs-stopped)
+      (piemacs-start))
+    (piemacs-send-buffer)))
+
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PROC FILTER/PARSE
 
 (defun piemacs-filter (proc string)
   (with-current-buffer (process-buffer proc)
@@ -162,19 +183,6 @@
       (piemacs-ov :message message :face face :linerange (list lstart lend)))))
 
 
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
-
-(defun piemacs-locate (name):
-  (locate-library name t))		; look on load-path X
-
-(defun piemacs-status (msg)
-  (message "piemacs: %s" msg))
-
-
-(when nil
-  (defun piemacs-echo-command (path)
-    "Highlight the current line, add important hover message."
-    (list "echo" "(piemacs-ov :message \"beer\" :face 'highlight)")))
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: FASTCHECK
 ;; highlight Python syntax errors
@@ -192,7 +200,8 @@
   (piemacs-ov :lineno lineno :message message :face 'fastcheck-face))
 
 (defun piemacs-set-fastcheck ()
-  (setq piemacs-command-function 'fastcheck-command))
+  (setq piemacs-command-function 'fastcheck-command
+	piemacs-check-function 'piemacs-check-with-server))
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: VCAGE
@@ -261,3 +270,16 @@
 (global-set-key (kbd "C-<kp-insert>") 'next-error)
   
 (provide 'piemacs)
+
+
+(when nil
+  (defun piemacs-date-command (path)
+    (list "date" "+(message \"it is now %c\")")))
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
+
+
+(when nil
+  (defun piemacs-echo-command (path)
+    "Highlight the current line, add important hover message."
+    (list "echo" "(piemacs-ov :message \"beer\" :face 'highlight)")))

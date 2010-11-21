@@ -43,6 +43,11 @@ def test_stat_important():
 def test_stat_summary():
     eq( Stat({'C':1, 'W':2}).summary(), 'C1 W2' )
 
+def print_iter(myiter):
+    for obj in myiter:
+        print obj,
+        yield obj
+
 class Pylint(object):
     def __init__(self, path):
         self.path = path
@@ -54,12 +59,17 @@ class Pylint(object):
             '\s(.+)'            # message
             )
 
+    def cmd_iter(self):
+        cmd = 'pylint'
+        if 'geodelic' in os.path.abspath(self.path):
+            cmd = '/home/johnm/src/geodelic/bin/pylint'
+        args = '--disable=C,I,R --include-ids=y --reports=n -fparseable'
+        path = self.path
+        return os.popen('{cmd} {args} 2>&1 {path}'.format(**locals()))
+
     def __iter__(self, lines=None):
         if lines is None:
-            cmd = 'pylint'
-            if 'geodelic' in os.path.abspath(self.path):
-                cmd = '/home/johnm/src/geodelic/bin/pylint'
-            lines = os.popen('%s 2>&1 -fparseable -iy %s' % (cmd, self.path))
+            lines = self.cmd_iter()
         return (m.groups() for m in ifilter(None, imap(self.pat.match, lines)))
 
 
@@ -97,7 +107,7 @@ def ppylint(path):
     yield '(piemacs-remove-overlays)'
     for mname,mline,mstatus,mcode,mobj,mmsg in Pylint(path):
         stat.add(mline, mstatus)
-        if mstatus in 'CRI' or not stat.status_important(mline, mstatus):
+        if mstatus in 'CRI': # or not stat.status_important(mline, mstatus):
             continue
         face = 'piemacs-pylint-error'
         yield '(piemacs-ov :lineno %s :message "%s" :face \'%s)' % (

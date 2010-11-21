@@ -2,6 +2,10 @@ RECENT_PY := $(shell ls -1t *.py | egrep -v _flymake | head -1)
 
 all:
 
+test-fastcheck:
+	/bin/echo -e ">24\t"`cat ex-error2.py` | ./fastcheck.py --server
+
+
 # .PHONY: src-paths.dat
 # src-paths.dat:
 # time find ../geodelic/packages -name '*.py' > $@

@@ -1,11 +1,19 @@
 #!/usr/bin/env python2.6
 
-import glob, itertools, re, sys, time, token, tokenize
+import glob, itertools, logging, optparse, re, sys, time, token, tokenize
 from nose.tools import eq_ as eq
+
+logging.basicConfig(
+    filename='/tmp/fastcheck.log', 
+    level=logging.DEBUG,
+    format="%(asctime)-15s %(levelname)s %(message)s",
+    )
 
 def fastcheck(source, filename='<string>'):
     try:
+        logging.info("< %d bytes: %s", len(source), source[:50])
         compile(source, filename, 'exec')
+        logging.info("> ok")
         return
     except SyntaxError, exc:
         # print repr(exc)
@@ -13,6 +21,7 @@ def fastcheck(source, filename='<string>'):
         del exc
         del source
         del _
+        logging.info("> err: %s", locals())
         return locals()
 
 def test_eof():
@@ -46,23 +55,48 @@ def check():
 
 cmdpat = re.compile('^>(\d+)\t(.+\n)')
 
+# Pymacs style:
+def pm_send(data):
+    logging.debug('send: %s', data)
+    print '<%d\t%s' % (len(data)+1, data) # +1 for newline
+def send(data):
+    logging.debug('send: %s', data)
+    print data
+
 def server(fd):
-    for line in fd:
-        print line
+    send('(piemacs-status "fastcheck started")')
+    logging.info('started')
+    while 1:
+        line = fd.readline()    # line buffered
+        if not line:
+            break
+        logging.debug('< %s', line.rstrip())
         if not line.startswith('>'):
-            print '?',line,
+            logging.info('cmd?: %s',line.rstrip())
             continue
         m = cmdpat.match(line)
         if not m:
-            print 'cmd?', line,
+            logging.info('detail?: %s',line.rstrip())
             continue
         total = int(m.group(1))
         source = [m.group(2)]
         remaining = total - len(source[0])
         if remaining:
             source.append( fd.read(remaining) )
-        print "yay: size=%d, source=%s" % (total, ''.join(source))
+
+        source = ''.join(source)
+        # print "yay: size=%d, source=%s" % (total, source)
+        res = fastcheck(source, filename='<stdin>')
+        if not res:
+            send('(piemacs-status "fastcheck ok")')
+            continue
+        send('(fastcheck-err {errline} {errpos} "{msg}")'.format(**res))
 
 if __name__=='__main__':
-    server(sys.stdin)
-
+    if sys.argv[1:] == ['--server']:
+        try:
+            server(sys.stdin)
+        except Exception as exc:
+            logging.critical('stopping: %s', exc)
+    else:
+        check()
