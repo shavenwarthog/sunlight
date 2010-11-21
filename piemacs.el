@@ -18,7 +18,7 @@
   (write-region nil nil piemacs-workfile-path :visit -1))
 
 (defun piemacs-delete-workfile ()
-  (when (file-exists-p piemacs-workfile-path)
+  (when (and piemacs-workfile-path (file-exists-p piemacs-workfile-path))
       (delete-file piemacs-workfile-path)
       (setq piemacs-workfile-path nil)))
 
@@ -32,7 +32,7 @@
 (defun piemacs-checkable ()
   (eq 'python-mode major-mode))
 
-(defun piemacs-check ()
+(defun piemacs-check-once ()
   (interactive)
   (when (piemacs-checkable)
     (setq piemacs-sourcebuf (current-buffer))
@@ -47,6 +47,39 @@
 	(goto-char (process-mark piemacs-proc))))
     (set-process-filter piemacs-proc 'piemacs-filter)
     (set-process-sentinel piemacs-proc 'piemacs-sentinel)))
+
+(defun piemacs-start ()
+  (let* ((cmd (funcall piemacs-command-function))
+	 (bufname (format "*piemacs: %s*" (car cmd))))
+    (setq piemacs-proc 
+	  (apply 'start-process-shell-command "piemacs" bufname (car cmd) (cdr cmd)))
+    (with-current-buffer (process-buffer piemacs-proc)
+      (insert (format "command: %s\n\n" cmd))
+      (goto-char (process-mark piemacs-proc))))
+  (set-process-filter piemacs-proc 'piemacs-filter)
+  (set-process-sentinel piemacs-proc 'piemacs-sentinel))
+
+(defun piemacs-stopped ()
+  (or (null piemacs-proc) 
+      (> (process-exit-status piemacs-proc) 0)))
+
+(defun piemacs-restart ()
+  (when (piemacs-stopped)
+    (piemacs-start)))
+
+(defun piemacs-stop ()
+  (when (not (piemacs-stopped))
+    (delete-process piemacs-proc)))
+
+(defun piemacs-check ()
+  (interactive)
+  (when (piemacs-checkable)
+    (setq piemacs-sourcebuf (current-buffer))
+    (piemacs-remove-overlays)
+    (piemacs-restart)
+    (process-send-region piemacs-proc (point-min) (point-max))))
+
+;;    (process-send-string piemacs-proc ">3\tx=\n")
 
 (defun piemacs-remove-overlays ()
   (interactive)
@@ -119,7 +152,8 @@
 	     (linerange (piemacs-make-ov-linerange linerange))
 	     (t (error "Unknown region")))))
     (overlay-put ov 'face (or face 'piemacs-pylint-error))
-    (overlay-put ov 'help-echo message)))
+    (when message
+      (overlay-put ov 'help-echo message))))
 
 (defun* piemacs-ovs (&key message face lineranges)
   (while lineranges
@@ -128,33 +162,55 @@
       (piemacs-ov :message message :face face :linerange (list lstart lend)))))
 
 
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
+
+(defun piemacs-locate (name):
+  (locate-library name t))		; look on load-path X
+
+(defun piemacs-status (msg)
+  (message "piemacs: %s" msg))
+
+
 (when nil
   (defun piemacs-echo-command (path)
     "Highlight the current line, add important hover message."
     (list "echo" "(piemacs-ov :message \"beer\" :face 'highlight)")))
 
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: FASTCHECK
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: FASTCHECK
 ;; highlight Python syntax errors
+;; (server)
 
 (defface fastcheck-face
   '((t :box t))
   ".")
 
-(defun fastcheck-command (workpath)
-  (list "python2.6" "./fastcheck.py" "<" workpath))
-
-;; (funcall piemacs-command "beer")
+(defun fastcheck-command ()
+  (list "python2.6" "./fastcheck.py" "--server"))
 
 (defun fastcheck-err (lineno errpos message)
   (message "fastcheck: +%s '%s'" lineno message)
   (piemacs-ov :lineno lineno :message message :face 'fastcheck-face))
 
-
 (defun piemacs-set-fastcheck ()
   (setq piemacs-command-function 'fastcheck-command))
 
 
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: NOSETESTS / COVERAGE
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: VCAGE
+;; using version control, older code is smaller
+
+(defface vcage-old-face
+  '((t :height 0.90))
+  ".")
+(defface vcage-oldest-face
+  '((t :height 0.75))
+  ".")
+;; (set-face-attribute 'vcage-old-face nil :height 0.90)
+
+(defun piemacs-set-vcage ()
+  (setq piemacs-command-function (lambda (path) (list "python2.6" "./vcage.py" path))))
+
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: NOSETESTS / COVERAGE
 
 ;; (piemacs-nosetest "test_callname_shouldskip" 'piemacs-face-okay)
 ;; (piemacs-nosetest "test_enum_pos" 'piemacs-face-okay)
@@ -183,16 +239,6 @@
 ;; bold-italic	  highlight	    region	      escape-glyph
 ;; underline
 
-
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
-
-(defun piemacs-locate (name):
-  (locate-library name t))		; look on load-path X
-
-(defun piemacs-status (msg)
-  (message "piemacs: %s" msg))
-
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: PYLINT
 
 (defface piemacs-pylint-error
   '((t :underline "red2"))
