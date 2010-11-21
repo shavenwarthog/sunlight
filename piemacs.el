@@ -185,7 +185,7 @@
 (defun* piemacs-ov-pos (&key lineno col message face)
   (save-excursion
     (goto-line lineno)
-    (let* ((pos (+ (point) col))
+    (let* ((pos (1- (+ (point) col)))
 	   (ov (piemacs-make-overlay pos (1+ pos))))
       (overlay-put ov 'face (or face 'piemacs-pylint-error))
       (when message
@@ -203,10 +203,6 @@
 
 (defun fastcheck-command ()
   (list "python2.6" "./fastcheck.py" "--server"))
-
-(defun fastcheck-err (lineno errpos message)
-  (message "fastcheck: +%s '%s'" lineno message)
-  (piemacs-ov :lineno lineno :message message :face 'fastcheck-face))
 
 (defun piemacs-set-fastcheck ()
   (setq piemacs-command-function 'fastcheck-command

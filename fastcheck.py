@@ -48,12 +48,9 @@ def check():
     source = sys.stdin.read()
     res = fastcheck(source, filename='<stdin>')
     if res:
-        print '(fastcheck-err {errline} {errpos} "{msg}")'.format(**res)
+        print ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
+               ' :message "{msg}" :face \'fastcheck-face)'.format(**res))
 
-# http://pymacs.progiciels-bpi.ca/pymacs.html
-# ">2\t.\n"  length = data plus newline
-
-cmdpat = re.compile('^>(\d+)\t(.+\n)')
 
 # Pymacs style:
 def pm_send(data):
@@ -64,13 +61,18 @@ def send(data):
     print data
 
 def server(fd):
+    # http://pymacs.progiciels-bpi.ca/pymacs.html
+    # ">2\t.\n"  length = data plus newline
+    cmdpat = re.compile('^>(\d+)\t(.+\n)')
+
     send('(piemacs-status "fastcheck started")')
     logging.info('started')
+    start_tm = None
     while 1:
         line = fd.readline()    # line buffered
         if not line:
             break
-        logging.debug('< %s', line.rstrip())
+        logging.debug('recv: %s', line.rstrip())
         if not line.startswith('>'):
             logging.info('cmd?: %s',line.rstrip())
             continue
@@ -78,19 +80,23 @@ def server(fd):
         if not m:
             logging.info('detail?: %s',line.rstrip())
             continue
+        start_tm = time.time()
         total = int(m.group(1))
         source = [m.group(2)]
         remaining = total - len(source[0])
         if remaining:
             source.append( fd.read(remaining) )
 
-        source = ''.join(source)
-        # print "yay: size=%d, source=%s" % (total, source)
-        res = fastcheck(source, filename='<stdin>')
+        res = fastcheck(source=''.join(source), filename='<stdin>')
+        logging.info('%d chars in %.2f seconds', total, time.time()-start_tm)
         if not res:
             send('(piemacs-status "fastcheck ok")')
             continue
-        send('(fastcheck-err {errline} {errpos} "{msg}")'.format(**res))
+        # be careful highlighting after the code
+        if len(res['src']) == res['errpos']:
+            res['errpos'] -= 1
+        send('(piemacs-ov-pos :lineno {errline} :col {errpos}'
+             ' :message "{msg}" :face \'fastcheck-face)'.format(**res))
 
 if __name__=='__main__':
     if sys.argv[1:] == ['--server']:
