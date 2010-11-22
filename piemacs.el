@@ -9,8 +9,24 @@
 (defvar piemacs-sourcebuf nil "Buffer containing source code")
 (defvar piemacs-proc nil "piemacs process")
 (defvar piemacs-workfile-path nil "temporary copy of source code")
+(defvar piemacs-timer nil "timer")
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
+
+(defun piemacs-idle-callback (last-modified-tick)
+  "Run check if modified since last-modified-tick.
+Then, start another timer, with new modification time."
+  (when (> (buffer-modified-tick piemacs-sourcebuf) last-modified-tick)
+    (cancel-timer piemacs-timer)
+    (piemacs-check)
+    (piemacs-start-timer)))
+
+(defun piemacs-start-timer ()    
+  (when piemacs-timer
+    (cancel-timer piemacs-timer))
+  (setq piemacs-timer (run-with-idle-timer 
+		       0.5 t 'piemacs-idle-callback 
+		       (buffer-modified-tick piemacs-sourcebuf))))
 
 (defun piemacs-write-workfile ()
   ;; current directory, to preserve imports
@@ -265,7 +281,8 @@
   (list (piemacs-locate "ppylint.py") path))
 
 (defun piemacs-set-pylint ()
-  (setq piemacs-command-function 'pylint-command))
+  (setq piemacs-command-function 'pylint-command
+	piemacs-check-function 'piemacs-check-sync))	
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: 	
