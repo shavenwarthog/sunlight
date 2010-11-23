@@ -9,6 +9,8 @@ logging.basicConfig(
     format="%(asctime)-15s %(levelname)s %(message)s",
     )
 
+VERBOSE = False
+
 def fastcheck(source, filename='<string>'):
     try:
         logging.info("< %d bytes: %s", len(source), source[:50])
@@ -16,7 +18,6 @@ def fastcheck(source, filename='<string>'):
         logging.info("> ok")
         return
     except SyntaxError, exc:
-        # print repr(exc)
         msg,(_,errline,errpos,src) = exc
         del exc
         del source
@@ -90,7 +91,8 @@ def server(fd):
         res = fastcheck(source=''.join(source), filename='<stdin>')
         logging.info('%d chars in %.2f seconds', total, time.time()-start_tm)
         if not res:
-            send('(piemacs-status "fastcheck ok")')
+            if VERBOSE:
+                send('(piemacs-status "fastcheck ok")')
             continue
         # be careful highlighting after the code
         if len(res['src']) == res['errpos']:
@@ -103,6 +105,6 @@ if __name__=='__main__':
         try:
             server(sys.stdin)
         except Exception as exc:
-            logging.critical('stopping: %s', exc)
+            logging.critical('stopping', exc_info=True)
     else:
         check()

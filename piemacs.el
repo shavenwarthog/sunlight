@@ -10,6 +10,7 @@
 (defvar piemacs-proc nil "piemacs process")
 (defvar piemacs-workfile-path nil "temporary copy of source code")
 (defvar piemacs-timer nil "timer")
+(defvar piemacs-timer-secs 0.1 "timer idle timout, in seconds")
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
@@ -21,11 +22,14 @@ Then, start another timer, with new modification time."
     (piemacs-check)
     (piemacs-start-timer)))
 
-(defun piemacs-start-timer ()    
+(defun piemacs-stop-timer ()
   (when piemacs-timer
-    (cancel-timer piemacs-timer))
+    (cancel-timer piemacs-timer)))
+
+(defun piemacs-restart-timer ()    
+  (piemacs-stop-timer)
   (setq piemacs-timer (run-with-idle-timer 
-		       0.5 t 'piemacs-idle-callback 
+		       piemacs-timer-secs t 'piemacs-idle-callback 
 		       (buffer-modified-tick piemacs-sourcebuf))))
 
 (defun piemacs-write-workfile ()
@@ -54,8 +58,6 @@ Then, start another timer, with new modification time."
 (defun piemacs-check ()
   (interactive)
   (funcall piemacs-check-function))
-
-;;    (process-send-string piemacs-proc ">3\tx=\n")
 
 (defun piemacs-remove-overlays ()
   (interactive)
@@ -103,7 +105,8 @@ Then, start another timer, with new modification time."
       (insert (format "command: %s\n\n" cmd))
       (goto-char (process-mark piemacs-proc))))
   (set-process-filter piemacs-proc 'piemacs-filter)
-  (set-process-sentinel piemacs-proc 'piemacs-sentinel))
+  (set-process-sentinel piemacs-proc 'piemacs-sentinel)
+  (piemacs-restart-timer))
 
 (defun piemacs-stopped ()
   (or (null piemacs-proc) 
@@ -117,14 +120,17 @@ Then, start another timer, with new modification time."
 
 (defun piemacs-stop ()
   (interactive)
+  (piemacs-stop-timer)
   (when (not (piemacs-stopped))
     (delete-process piemacs-proc)))
 
 ;; XX: assumes current buffer
 (defun piemacs-send-buffer ()
   (with-current-buffer piemacs-sourcebuf
-    (process-send-string piemacs-proc (format ">%d\t" (- (point-max) (point-min))))
-    (process-send-region piemacs-proc (point-min) (point-max))))
+    (process-send-string piemacs-proc 
+			 (format ">%d\t" (- (point-max) (point-min))))
+    (process-send-region piemacs-proc 
+			 (point-min) (point-max))))
 
 (defun piemacs-check-with-server ()
   (when (piemacs-checkable)
@@ -214,8 +220,9 @@ Then, start another timer, with new modification time."
 ;; (server)
 
 (defface fastcheck-face
-  '((t :box t))
+  '((t :background "firebrick4"))
   ".")
+;; (set-face-attribute 'fastcheck-face nil :background "firebrick4" :box nil)
 
 (defun fastcheck-command ()
   (list "python2.6" "./fastcheck.py" "--server"))
