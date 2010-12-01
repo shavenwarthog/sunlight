@@ -2,7 +2,7 @@
 
 (require 'compile)
 
-(defcustom trimfat-zap-lines-regexp-list
+(defcustom trimfat-flush-lines-regexp-list
   (list
    "File .+lib/python.+\n"
    "File .+/deps/.+\n")
@@ -14,7 +14,7 @@
 		   "^/.+/psql"
 		   "File .+/packages/restapi/.+\n"
 		   "File .+/tools/decorators.+\n"))		   
-  (add-to-list 'trimfat-zap-lines-regexp-list pat))
+  (add-to-list 'trimfat-flush-lines-regexp-list pat))
  
 	     
 (defcustom trimfat-highlight-matches t 
@@ -22,7 +22,13 @@
   :group 'trimfat)
 ;; (setq trimfat-hide nil)
 
+
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: FACES
+
+(defface trimfat-invisible
+  '((t :foreground "invisible" :underline "green"))
+  "Invisible face"
+  :group 'trimfat)
 
 (defface trimfat-okay
   '((((min-colors 88) (background dark))
@@ -42,7 +48,7 @@
   "Face"
   :group 'trimfat)
 
-(set-face-attribute 'trimfat-error nil :background "firebrick3")
+;; (set-face-attribute 'trimfat-error nil :background "firebrick3")
 
 ;; trimfat-highlight
 
@@ -77,21 +83,38 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   (while (re-search-forward regexp (point-max) t)
     (replace-match to-string)))
 
-(defun trimfat-test ()
-  (toggle-read-only -1)			;; XX gauche
-  (save-excursion
-    (trimfat-replace "/home.+src/[^/]+/" ""))) ;; XX
-;; (add-hook 'compilation-filter-hook 'trimfat-test)
+;; (defun trimfat-test ()
+;;   (toggle-read-only -1)			;; XX gauche
+;;   (save-excursion
+;;     (trimfat-replace "/home.+src/[^/]+/" ""))) ;; XX
+;; ;; (add-hook 'compilation-filter-hook 'trimfat-test)
 
 
-(defun trimfat-zap-lines ()
+;; XX:
+(defun trimfat-remove-overlays ()
+  (remove-from-invisibility-spec '(trimfat . t))
+  (remove-from-invisibility-spec 'trimfat))
+
+(defun trimfat-f-flush-lines ()
   (save-excursion
-    (dolist (pat trimfat-zap-lines-regexp-list)
+    (dolist (pat trimfat-flush-lines-regexp-list)
       (flush-lines pat (point-min) (point-max)))))
 
+(defun trimfat-f-fixup-invisible ()
+  (save-excursion
+    (while (not (eobp))			;; ??
+      (let ((plist (text-properties-at (point)))
+	    (next-change
+	     (or (next-property-change (point) (current-buffer))
+		 (point-max))))
+	(if (string= "invisible" (get-text-property (point) :foreground))
+	    (put-text-property (point) next-change 'invisible 'trimfat))
+	(goto-char next-change)))))
 
 
-(add-hook 'compilation-filter-hook 'trimfat-zap-lines)
+
+(add-hook 'compilation-filter-hook 'trimfat-f-flush-lines)
+(add-hook 'compilation-filter-hook 'trimfat-f-fixup-invisible)
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: MINOR MODE
 
@@ -105,117 +128,18 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   ;; (when (eq trimfat-highlight-matches t)
   (set (make-local-variable 'compilation-exit-message-function)
        'trimfat-exit-message-function)
-  (trimfat-highlight-setup))
+  (if t
+      (progn
+	(add-to-invisibility-spec '(trimfat . t)) ;; ellipses
+	(trimfat-highlight-setup))
+    (progn
+      (remove-from-invisibility-spec '(trimfat . t))
+      (remove-from-invisibility-spec 'trimfat))))
 
 (add-hook 'compilation-mode-hook 'trimfat-mode-hook)
 
 (provide 'trimfat)
 
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: HISTORICAL
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;; (global-set-key (kbd "<kp-up>") 'trimfat-highlight)
-
-
-;; (defun trimfat-hide-match (&optional matchnum)
-;;   ""
-;;   (put-text-property (match-beginning (or matchnum 0))
-;; 		     (match-end (or matchnum 0))
-;; 		     'invisible
-;; 		     'trimfat))
-
-;; (defun trimfat-hide-region (pos1 pos2)
-;;   (put-text-property pos1 pos2 'invisible 'trimfat))
-
-;; (defun trimfat-mapc-matches (pat func &optional buffer)
-;;   (save-excursion
-;;     (with-current-buffer (or buffer (current-buffer))
-;;       (goto-char (point-max))
-;;       (while (re-search-backward pat nil t)
-;;       	(funcall func)))))
-
-;; (defun trimfat-hidepats (pats)
-;;   (mapc (lambda (pat) (trimfat-mapc-matches pat 'trimfat-hide-match))
-;; 	pats))
-
-;; (defun trimfat-show-testfunc (&optional buffer)
-;;   (interactive)
-;;   (when trimfat-hide
-;;     (let ((buffer (or buffer (current-buffer))))
-;;       (with-current-buffer buffer
-;; 	(trimfat-hidepats (list "test_"))))))
-  
-;; (defun trimfat-h-header (&optional buffer)
-;;   "Hide boilerplate, leaving print output, traceback, and exception details."
-;;   (interactive)
-;;   (when trimfat-hide
-;;     (let ((buffer (or buffer (current-buffer))))
-;;       (with-current-buffer buffer
-;; 	;; header:
-;; 	(goto-char (point-min))
-;; 	(when (re-search-forward "^=====.+$" nil t)
-;; 	  (trimfat-hide-region (point-min) (line-beginning-position)))))))
-
-;; (defun trimfat-h-footer (&optional buffer)
-;;   "Hide boilerplate"
-;;   (interactive)
-;;   (trimfat-mapc-matches "^Ran \[0-9\]+ test.+\n" 'trimfat-hide-match)
-;;   (trimfat-mapc-matches "^Compilation.+\n" 'trimfat-hide-match))
-;; ;; (global-set-key (kbd "<kp-home>") 'trimfat-h-footer)
-
-;; ;; ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-;; ;; zap server/django-admin.py and server/tests.py
-
-;; (defun trimfat-hide-fluff (&optional buffer status)
-;;   "Hide boilerplate, leaving print output, traceback, and exception details."
-;;   (interactive)
-;;   (when trimfat-hide
-   ;;  (trimfat-highlight)		;XX: run at beginning
-;;     (trimfat-mapc-matches "/home/johnm/src/[^/]+/" 'trimfat-hide-match)
-;;     (trimfat-mapc-matches 
-;;      "\s+File .+/server/[^/]+.py.+\n.+\n" 
-;;      'trimfat-hide-match)
-;;     (trimfat-mapc-matches "\s+File .+in eq\n.+\n" 'trimfat-hide-match)
-;;     (trimfat-mapc-matches "\s+File .+in eq_\.+\n.+\n" 'trimfat-hide-match)
-;;     (trimfat-mapc-matches "\s+File .+/deps/.+\n.+\n" 'trimfat-hide-match)
-;;     (trimfat-mapc-matches "\s+File .+/packages/.+\n.+\n" 'trimfat-hide-match)
-;;     (trimfat-mapc-matches "\s+File .+/usr/lib/python.+\n.+\n" 'trimfat-hide-match)
-;;     (trimfat-mapc-matches "/.+/bin/psql.+\n" 'trimfat-hide-match)
-;;     (trimfat-h-header)
-;;     (trimfat-h-footer)))
-
-;; (defun trimfat-unhide ()
-;;   "Make all stuff visible and buffer editable."
-;;   (toggle-read-only -1)
-;;   (interactive)
-;;   (remove-text-properties (point-min)
-;;                           (point-max)
-;; 			  '(invisible nil)))
-
-;; (define-key compilation-mode-map (kbd "<kp-home>") 'trimfat-unhide)
-
-;; ;; ;; Unicode BOX DRAWINGS LIGHT HORIZONTAL = 2500
-;; ;; (defun trimfat-replace-line ()
-;; ;;   (goto-char (point-min))
-;; ;;   (while (re-search-forward "^---+" nil t)
-;; ;;     (replace-match (make-string 60 ?─)))
-;; ;;   (goto-char (point-min))
-;; ;;   (while (re-search-forward "^===+" nil t)
-;; ;;     (replace-match (make-string 60 ?═))))
-  
-;; (add-to-list 'compilation-finish-functions 'trimfat-hide-fluff)
-      
+(trimfat-hl-pats 'trimfat-invisible (list "beer"))

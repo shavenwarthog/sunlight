@@ -1,4 +1,4 @@
-#!/home/johnm/local/bin/python2.6
+#!/usr/bin/env python2.6
 
 '''
 xref.py -- postprocess Etags database into call graph

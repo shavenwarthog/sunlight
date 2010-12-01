@@ -244,7 +244,10 @@ Then, start another timer, with new modification time."
 ;; (set-face-attribute 'vcage-old-face nil :height 0.90)
 
 (defun piemacs-set-vcage ()
-  (setq piemacs-command-function (lambda (path) (list "python2.6" "./vcage.py" path))))
+  (setq piemacs-command-function 
+	(lambda (path) (list "python2.6" "./vcage.py" path))
+	piemacs-check-function 'piemacs-check-with-server))
+
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: NOSETESTS / COVERAGE
@@ -267,15 +270,7 @@ Then, start another timer, with new modification time."
 ;;	  (split-string "python2.6 ./pnosetests.py test_xref.py"))
 
 
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: PYLINT
-
-;; standard Emacs faces:
-;; default	  fixed-pitch	    isearch	      secondary-selection
-;; bold		  variable-pitch    query-replace     trailing-whitespace
-;; italic	  shadow	    lazy-highlight    nobreak-space
-;; bold-italic	  highlight	    region	      escape-glyph
-;; underline
-
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: PYLINT
 
 (defface piemacs-pylint-error
   '((t :underline "red2"))
@@ -289,7 +284,7 @@ Then, start another timer, with new modification time."
 
 (defun piemacs-set-pylint ()
   (setq piemacs-command-function 'pylint-command
-	piemacs-check-function 'piemacs-check-sync))	
+	piemacs-check-function 'piemacs-check-sync))
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: 	
@@ -312,3 +307,12 @@ Then, start another timer, with new modification time."
   (defun piemacs-echo-command (path)
     "Highlight the current line, add important hover message."
     (list "echo" "(piemacs-ov :message \"beer\" :face 'highlight)")))
+
+;; standard Emacs faces:
+;; default	  fixed-pitch	    isearch	      secondary-selection
+;; bold		  variable-pitch    query-replace     trailing-whitespace
+;; italic	  shadow	    lazy-highlight    nobreak-space
+;; bold-italic	  highlight	    region	      escape-glyph
+;; underline
+
+

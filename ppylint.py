@@ -2,7 +2,10 @@
 
 import os, re, sys
 from itertools import ifilter, imap
-from nose.tools import eq_ as eq
+try:
+    from nose.tools import eq_ as eq
+except ImportError:
+    pass
 
 
 PYLINT_RANK = 'CIRWEF'           # ordered by importance, last=highest
