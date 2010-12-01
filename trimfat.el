@@ -17,10 +17,6 @@
   (add-to-list 'trimfat-flush-lines-regexp-list pat))
  
 	     
-(defcustom trimfat-highlight-matches t 
-  "Hide boring things, highlight goodies" 
-  :group 'trimfat)
-;; (setq trimfat-hide nil)
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: FACES
@@ -111,6 +107,10 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	    (put-text-property (point) next-change 'invisible 'trimfat))
 	(goto-char next-change)))))
 
+(defun jmc-test ()
+  (save-excursion
+    (goto-char (point-min))
+    (trimfat-f-fixup-invisible)))
 
 
 (add-hook 'compilation-filter-hook 'trimfat-f-flush-lines)
@@ -125,7 +125,6 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	  (format "%d errs" 12))))
 
 (defun trimfat-mode-hook ()
-  ;; (when (eq trimfat-highlight-matches t)
   (set (make-local-variable 'compilation-exit-message-function)
        'trimfat-exit-message-function)
   (if t
