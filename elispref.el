@@ -1,19 +1,23 @@
-(defcustom elispref-css nil
-  "CSS for Emacs Lisp Reference manual")
+;; (defcustom elispref-css nil
+;;   "CSS for Emacs Lisp Reference manual")
 
-;; code fixed
-(setq elispref-css "
-<style type=\"text/css\">
-var { font-size:large; }
-blockquote	{ margin: 0px; border: 0px; }
-</style>
-")
+;; ;; code fixed
+;; (setq elispref-css "
+;; <style type=\"text/css\">
+;; var { font-size:large; }
+;; blockquote	{ margin: 0px; border: 0px; }
+;; </style>
+;; ")
 
-(defun elispref-modify-html ()
+;; (defun elispref-modify-html ()
+;;   (goto-char (point-min))
+;;   (insert elispref-css))
+
+(defun elispref-replace (regexp to-string)
   (goto-char (point-min))
-  (insert elispref-css))
+  (while (re-search-forward regexp (point-max) t)
+    (replace-match to-string)))
 
-(elispref "1+")
 (defun elispref (funcname)
   (interactive "aFunction: ")
   (find-file-other-window "~/Documents/elisp.html")
@@ -22,11 +26,16 @@ blockquote	{ margin: 0px; border: 0px; }
   (let* ((start (re-search-backward "<div"))
 	 (end (re-search-forward "</div>"))
 	 (lispref-buf (current-buffer)))
-    (switch-to-buffer (get-buffer-create "*beer*"))
+    (switch-to-buffer (get-buffer-create (format "*elisp: %s*" funcname)))
     (erase-buffer)
     (insert-buffer-substring lispref-buf start end)
-    (elispref-modify-html)
-    (w3-region (point-min) (point-max))))
+    (elispref-replace "&mdash;" "-")
+    (html-mode)
+    (sgml-tags-invisible t)))
+
+;;    (w3-region (point-min) (point-max))))
+
+(defun jmc-test () (elispref "1+"))
 
 
 
