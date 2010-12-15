@@ -13,7 +13,7 @@ blockquote	{ margin: 0px; border: 0px; }
   (goto-char (point-min))
   (insert elispref-css))
 
-
+(elispref "1+")
 (defun elispref (funcname)
   (interactive "aFunction: ")
   (find-file-other-window "~/Documents/elisp.html")

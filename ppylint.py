@@ -64,8 +64,6 @@ class Pylint(object):
 
     def cmd_iter(self):
         cmd = 'pylint'
-        if 'geodelic' in os.path.abspath(self.path):
-            cmd = '/home/johnm/src/geodelic/bin/pylint'
         args = '--disable=C,I,R --include-ids=y --reports=n -fparseable'
         path = self.path
         return os.popen('{cmd} {args} 2>&1 {path}'.format(**locals()))
