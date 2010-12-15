@@ -1,7 +1,6 @@
 ;; piemacs.el -- run process, eval lisp expressions
 
 (require 'cl)
-(add-to-list 'load-path "~/src/sunlight") ;XXX
 
 ;; XX buffer local:
 (defvar piemacs-command-function nil "Function returning shell command")
@@ -20,7 +19,7 @@ Then, start another timer, with new modification time."
   (when (> (buffer-modified-tick piemacs-sourcebuf) last-modified-tick)
     (cancel-timer piemacs-timer)
     (piemacs-check)
-    (piemacs-start-timer)))
+    (piemacs-restart-timer)))
 
 (defun piemacs-stop-timer ()
   (when piemacs-timer
@@ -56,8 +55,11 @@ Then, start another timer, with new modification time."
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: INTERACTIVE
 
 (defun piemacs-check ()
+  "Check and annotate current buffer."
   (interactive)
-  (funcall piemacs-check-function))
+  (if piemacs-check-function
+      (funcall piemacs-check-function)
+    (piemacs-status "no check function set")))
 
 (defun piemacs-remove-overlays ()
   (interactive)
@@ -67,6 +69,7 @@ Then, start another timer, with new modification time."
 ;; XX: interface with simple.el:next-error-function
 
 (defun piemacs-next-error ()
+  BLAM
   (interactive)
   (let ((nextov (next-overlay-change (line-end-position))))
     (if (< nextov (point-max))
@@ -143,18 +146,24 @@ Then, start another timer, with new modification time."
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PROC FILTER/PARSE
 
-(defun piemacs-filter (proc string)
+(defun piemacs-log (proc string &optional func)
   (with-current-buffer (process-buffer proc)
     (let ((moving (= (point) (process-mark proc))))
       (save-excursion
 	(goto-char (process-mark proc))
 	(insert (concat (format-time-string "\n%H:%M:%S\n")
 			string))
-	(piemacs-parsebuf string)
+	(when func 
+	  (apply func string)) ;; piemacs-parsebuf
 	(set-marker (process-mark proc) (point)))
       (if moving (goto-char (process-mark proc))))))
 
+(defun piemacs-filter (proc string)
+  (piemacs-log proc string 'piemacs-parsebuf))
+
 (defun piemacs-sentinel (proc string)
+  ;; (when (eq process-status proc 'exit)
+  (piemacs-log proc (format "beer: %s" (process-exit-status proc)))
   (piemacs-delete-workfile))
 
 (defun piemacs-parse (line)
@@ -287,20 +296,28 @@ Then, start another timer, with new modification time."
 	piemacs-check-function 'piemacs-check-sync))
 
 
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: PIEMACS DEBUG
+
+;; XXXX:
+(defun piemacs-set-debug ()
+  (setq piemacs-command-function
+	'(lambda (_)
+	  (list "date" "'+(message \"it is now %c\")'"))
+	piemacs-check-function 'piemacs-check-sync))
+
+
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: 	
 
 
-(global-set-key (kbd "<kp-insert>") 'piemacs-next-error)
-(global-set-key (kbd "C-<kp-insert>") 'next-error)
+(when nil
+  (global-set-key (kbd "<kp-insert>") 'piemacs-next-error)
+  (global-set-key (kbd "C-<kp-insert>") 'next-error))
   
 (provide 'piemacs)
 
 
-(when nil
-  (defun piemacs-date-command (path)
-    (list "date" "+(message \"it is now %c\")")))
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: HISTORICAL
 
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
 
 (when nil
