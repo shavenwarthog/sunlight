@@ -157,7 +157,7 @@ Then, start another timer, with new modification time."
 	(insert (concat (format-time-string "\n%H:%M:%S\n")
 			string))
 	(when func 
-	  (apply func string)) ;; piemacs-parsebuf
+	  (funcall func string)) ;; piemacs-parsebuf
 	(set-marker (process-mark proc) (point)))
       (if moving (goto-char (process-mark proc))))))
 
