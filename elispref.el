@@ -18,64 +18,35 @@
   (while (re-search-forward regexp (point-max) t)
     (replace-match to-string)))
 
+;; XXX: gauche but works
+
+(defun elispref-render (funcname html)
+  (insert lispref-html)
+  (elispref-replace "&mdash;" "-")
+  (sgml-tags-invisible t))
+
 (defun elispref (funcname)
   (interactive "aFunction: ")
-  (find-file-other-window "~/Documents/elisp.html")
-  (goto-char (point-min))
-  (re-search-forward (format "<b>" funcname "</b>"))
-  (let* ((start (re-search-backward "<div"))
-	 (end (re-search-forward "</div>"))
-	 (lispref-buf (current-buffer)))
-    (switch-to-buffer (get-buffer-create (format "*elisp: %s*" funcname)))
-    (erase-buffer)
-    (insert-buffer-substring lispref-buf start end)
-    (elispref-replace "&mdash;" "-")
-    (html-mode)
-    (sgml-tags-invisible t)))
-
-;;    (w3-region (point-min) (point-max))))
-
-(defun jmc-test () (elispref "1+"))
-
-
-
-(when nil
   (save-excursion
-    (find-file-other-window "~/Documents/elisp.html")
+    (set-buffer (find-file-noselect "~/Documents/elisp.html"))
     (goto-char (point-min))
-    (re-search-forward "<b>mapcar</b>")
+    (re-search-forward (format "<b>%s</b>" funcname))
     (let* ((start (re-search-backward "<div"))
 	   (end (re-search-forward "</div>"))
-	   (lispref-buf (current-buffer)))
-      (save-current-buffer
-	(set-buffer (get-buffer-create "*beer*"))
-	(toggle-read-only -1)
-	(erase-buffer)
-	(insert-buffer-substring lispref-buf start end)
-	(when nil
-	  (goto-char (point-min))
-	  (htmlr-render)
-	  (goto-char (point-min))
-	  (while (re-search-forward "&[a-z]+;" nil t)
-	    (replace-match "X")))
-	(view-buffer "*beer*")))))
+	   (lispref-html (buffer-substring-no-properties start end)))
+      ;; XXXXX: bah:
+      ;; (kill-buffer (get-buffer (format "*elisp: %s*" funcname)))
+      (save-excursion
+	(set-buffer (get-buffer-create (format "*elisp: %s*" funcname)))
+	;; (erase-buffer)
+	(html-mode)
+	;; XX:
+	(switch-to-buffer-other-window (current-buffer))
+	(elispref-render funcname lispref-html)))))
 
 
-;  (other-window 1))
-    ;; (with-output-to-temp-buffer "beer" 
-    ;;   (insert-buffer-substring lispref-buf start (re-search-forward "</div>"))))
+(defun jmc-test () (elispref "mapcar"))
 
-   ;; (let ((oldbuf (current-buffer)))
-   ;;       (save-current-buffer
-   ;;         (set-buffer (get-buffer-create buffer))
-   ;;         (insert-buffer-substring oldbuf start end))))
 
-;; (defun jmc-testme ()
-;;   (interactive)
-;;   (eval-defun nil)
-;;   (
-(define-key emacs-lisp-mode-map [kp-enter]
-  (lambda () (interactive) (eval-defun nil) (elispref)))
-;; (global-set-key (kbd "<kp-enter>") 'elispref)
 (global-set-key (kbd "C-h F") 'elispref)
 
