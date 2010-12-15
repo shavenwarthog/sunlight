@@ -166,7 +166,10 @@ Then, start another timer, with new modification time."
 
 (defun piemacs-sentinel (proc string)
   ;; (when (eq process-status proc 'exit)
-  (piemacs-log proc (format "beer: %s" (process-exit-status proc)))
+  (let ((status (process-exit-status proc)))
+    (if (= 0 status)
+	(piemacs-log proc (format "exit: okay\n" ))
+      (piemacs-log proc (format "exit: status=%d\n" status))))
   (piemacs-delete-workfile))
 
 (defun piemacs-parse (line)
