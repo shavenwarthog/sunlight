@@ -2,6 +2,9 @@
 
 (require 'cl)
 
+(defvar piemacs-load-path nil "load-path for plugins")
+;; XX: add location of piemacs.el 
+
 ;; XX buffer local:
 (defvar piemacs-command-function nil "Function returning shell command")
 (defvar piemacs-check-function nil "Function that checks current buffer")
@@ -43,7 +46,7 @@ Then, start another timer, with new modification time."
       (setq piemacs-workfile-path nil)))
 
 (defun piemacs-locate (name):
-  (locate-library name t))		; look on load-path X
+  (locate-library name t piemacs-load-path))
 
 (defun piemacs-status (msg)
   (message "piemacs: %s" msg))
@@ -288,8 +291,13 @@ Then, start another timer, with new modification time."
   '((t :underline "IndianRed"))
   "pylint warning")
 
-(defun pylint-command (path)
-  (list (piemacs-locate "ppylint.py") path))
+(defun pylint-command (source-path)
+  (let ((cmd (piemacs-locate "ppylint.py")))
+    (if cmd
+	(list cmd source-path)
+      (error "piemacs: plugin file %s not found; check load-path" cmd))))
+
+(defun jmc-test () (pylint-command "beer"))
 
 (defun piemacs-set-pylint ()
   (setq piemacs-command-function 'pylint-command
