@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.6
 
-import os, re, sys
+import os, re, subprocess, sys
 from itertools import ifilter, imap
 try:
     from nose.tools import eq_ as eq
@@ -67,7 +67,12 @@ class Pylint(object):
         cmd = '~/src/ex-django/bin/pylint'
         args = '--disable=C,I,R --include-ids=y --reports=n -fparseable'
         path = self.path
-        return os.popen('{cmd} {args} 2>&1 {path}'.format(**locals()))
+        self.pipe = subprocess.Popen('{cmd} {args} {path}'.format(**locals()),
+                                shell=True, stderr=subprocess.PIPE)
+        out, self.err = self.pipe.communicate()
+        if not out:
+            return iter([])
+        return iter(out.split('\n'))
 
     def __iter__(self, lines=None):
         if lines is None:
@@ -107,15 +112,18 @@ sunfudge.py:1: [E0602, Fake] Undefined variable 'fudge'
 def ppylint(path):
     stat = Stat()
     yield '(piemacs-remove-overlays)'
-    for mname,mline,mstatus,mcode,mobj,mmsg in Pylint(path):
+    pylint = Pylint(path)
+    for mname,mline,mstatus,mcode,mobj,mmsg in pylint:
         stat.add(mline, mstatus)
         if mstatus in 'CRI': # or not stat.status_important(mline, mstatus):
             continue
         face = 'piemacs-pylint-error'
         yield '(piemacs-ov :lineno %s :message "%s" :face \'%s)' % (
             mline, mmsg, face)
-
-    yield '(piemacs-status "%s")' % stat.summary()
+    if pylint.pipe.returncode != 0:
+        yield '(piemacs-status "err=%d: %s")' % (pylint.pipe.returncode, pylint.err.strip())
+    else:
+        yield '(piemacs-status "%s")' % stat.summary()
 
 def test_ppylint():
     eq( list(ppylint('sunfudge.py')),
