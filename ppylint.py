@@ -68,7 +68,8 @@ class Pylint(object):
         args = '--disable=C,I,R --include-ids=y --reports=n -fparseable'
         path = self.path
         self.pipe = subprocess.Popen('{cmd} {args} {path}'.format(**locals()),
-                                shell=True, stderr=subprocess.PIPE)
+                                     shell=True, stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
         out, self.err = self.pipe.communicate()
         if not out:
             return iter([])
@@ -120,7 +121,7 @@ def ppylint(path):
         face = 'piemacs-pylint-error'
         yield '(piemacs-ov :lineno %s :message "%s" :face \'%s)' % (
             mline, mmsg, face)
-    if pylint.pipe.returncode != 0:
+    if not stat and pylint.pipe.returncode != 0:
         yield '(piemacs-status "err=%d: %s")' % (pylint.pipe.returncode, pylint.err.strip())
     else:
         yield '(piemacs-status "%s")' % stat.summary()
