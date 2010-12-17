@@ -64,6 +64,7 @@ class Pylint(object):
 
     def cmd_iter(self):
         cmd = 'pylint'
+        cmd = '~/src/ex-django/bin/pylint'
         args = '--disable=C,I,R --include-ids=y --reports=n -fparseable'
         path = self.path
         return os.popen('{cmd} {args} 2>&1 {path}'.format(**locals()))
