@@ -45,8 +45,11 @@ Then, start another timer, with new modification time."
       (delete-file piemacs-workfile-path)
       (setq piemacs-workfile-path nil)))
 
+;; (defun piemacs-locate (name):
+;;   (locate-library name t piemacs-load-path))
+;; XXXX:
 (defun piemacs-locate (name):
-  (locate-library name t piemacs-load-path))
+  (concat "/home/johnm/src/sunlight/" name))
 
 (defun piemacs-status (msg)
   (message "piemacs: %s" msg))
@@ -165,12 +168,13 @@ Then, start another timer, with new modification time."
   (piemacs-log proc string 'piemacs-parsebuf))
 
 (defun piemacs-sentinel (proc string)
-  ;; (when (eq process-status proc 'exit)
-  (let ((status (process-exit-status proc)))
-    (if (= 0 status)
-	(piemacs-log proc (format "exit: okay\n" ))
-      (piemacs-log proc (format "exit: status=%d\n" status))))
-  (piemacs-delete-workfile))
+  (piemacs-log proc (format "sentinel: %s\n" string))
+  (when (eq (process-status proc) 'exit)
+    (let ((status (process-exit-status proc)))
+      (if (= 0 status)
+	  (piemacs-log proc (format "exit: okay\n" ))
+	(piemacs-log proc (format "exit: status=%d\n" status))))
+    (piemacs-delete-workfile)))
 
 (defun piemacs-parse (line)
   (save-excursion
@@ -294,13 +298,18 @@ Then, start another timer, with new modification time."
   '((t :underline "IndianRed"))
   "pylint warning")
 
-(defun pylint-command (source-path)
-  (let ((cmd (piemacs-locate "ppylint.py")))
-    (if cmd
-	(list cmd source-path)
-      (error "piemacs: plugin file %s not found; check load-path" cmd))))
+(defvar piemacs-pylint-command "ppylint.py" "pylint path")
 
-(defun jmc-test () (pylint-command "beer"))
+(defun pylint-command (source-path)
+  (let ((cmd piemacs-pylint-command))
+    (if (file-exists-p cmd)
+	cmd
+      (error "piemacs: pylint command %s not found; check load-path" cmd))))
+;; (pylint-command nil)
+  ;; (let ((cmd (piemacs-locate name
+  ;;   (if cmd
+  ;; 	(list cmd source-path)
+  ;;     (error "piemacs: plugin file ppylint.py not found; check load-path" cmd))))
 
 (defun piemacs-set-pylint ()
   (setq piemacs-command-function 'pylint-command
