@@ -325,6 +325,28 @@ Then, start another timer, with new modification time."
 	  (list "date" "'+(message \"it is now %c\")'"))
 	piemacs-check-function 'piemacs-check-sync))
 
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: EMACS LISP
+;; adapted from http://www.emacswiki.org/emacs/FlymakeElisp
+;; cf: (error-message-string)
+
+(defun piemacs-elisp-check ()
+  (piemacs-remove-overlays)
+  (save-excursion
+    (condition-case errinfo
+	(scan-sexps (point-min) (point-max))
+      (scan-error
+       (let ((errmsg (error-message-string (list (car errinfo)))))
+	 (piemacs-ov
+	  :lineno (line-number-at-pos (nth 2 errinfo))
+	  :face 'piemacs-pylint-error
+	  :message errmsg)
+	 (piemacs-status errmsg))))))
+      
+(defun
+(defun jmc-test () (piemacs-elisp-check))
+
+   ;; (piemacs-status (format "Unmatched bracket or quote"
+   ;; 			   (buffer-file-name) (line-number-at-pos)))))
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: 	
 
