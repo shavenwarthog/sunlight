@@ -44,39 +44,40 @@ def test_time():
         fastcheck(source)
     elapsed = time.time()-t
     print int((4734*loops) / elapsed), 'lines per second'
+del test_time
 
-def check():
-    source = sys.stdin.read()
-    res = fastcheck(source, filename='<stdin>')
-    if res:
-        print ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
-               ' :message "{msg}" :face \'piemacs-fastcheck)'.format(**res))
+# def check():
+#     source = sys.stdin.read()
+#     res = fastcheck(source, filename='<stdin>')
+#     if res:
+#         print ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
+#                ' :message "{msg}" :face \'piemacs-fastcheck)'.format(**res))
 
 
 # Pymacs style:
-def pm_send(data):
-    logging.debug('send: %s', data)
-    print '<%d\t%s' % (len(data)+1, data) # +1 for newline
+# def pm_send(data):
+#     logging.debug('send: %s', data)
+#     print '<%d\t%s' % (len(data)+1, data) # +1 for newline
 def send(data):
-    logging.debug('send: %s', data)
+    # logging.debug('send: %s', data)
     print data
 
 def server(fd):
     # http://pymacs.progiciels-bpi.ca/pymacs.html
     # ">2\t.\n"  length = data plus newline
-    cmdpat = re.compile('^>(\d+)\t(.+\n)')
+    cmdpat = re.compile('^>(\d+)\t(.*\n)')
 
     OVERLAY_FMT = ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
                    ' :message "{msg}" :face \'piemacs-fastcheck)')
 
     yield '(piemacs-status "fastcheck started")'
-    logging.info('started')
+    logging.info('start')
     start_tm = None
     while 1:
         line = fd.readline()    # line buffered
         if not line:
             break
-        logging.debug('recv: %s', line.rstrip())
+        logging.debug('recv: "%s"', line.rstrip())
         if not line.startswith('>'):
             logging.warn('cmd?: %s',line.rstrip())
             continue
@@ -112,12 +113,15 @@ def test_server():
         '(piemacs-ov-pos :lineno 1 :col 2 :message "invalid syntax" :face \'piemacs-fastcheck)'
         )
 
-    
+# ::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
 if __name__=='__main__':
     if sys.argv[1:] == ['--server']:
         try:
-            server(sys.stdin)
+            map(send, server(sys.stdin))
         except Exception as exc:
             logging.critical('stopping', exc_info=True)
+        logging.info('stop')
     else:
         check()
