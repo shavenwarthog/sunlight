@@ -2,6 +2,7 @@
 
 import glob, itertools, logging, optparse, re, sys, time, token, tokenize
 from nose.tools import eq_ as eq
+from StringIO import StringIO
 
 logging.basicConfig(
     filename='/tmp/fastcheck.log', 
@@ -19,11 +20,10 @@ def fastcheck(source, filename='<string>'):
         return
     except SyntaxError, exc:
         msg,(_,errline,errpos,src) = exc
-        del exc
-        del source
-        del _
-        logging.info("> err: %s", locals())
-        return locals()
+        # XXXX:
+        errinfo = dict( [(key,locals()[key]) for key in 'msg errline errpos src'.split()] )
+        logging.info("> err: %s", errinfo)
+        return errinfo
 
 def test_eof():
     eq( fastcheck('x='), 
@@ -50,7 +50,7 @@ def check():
     res = fastcheck(source, filename='<stdin>')
     if res:
         print ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
-               ' :message "{msg}" :face \'fastcheck-face)'.format(**res))
+               ' :message "{msg}" :face \'piemacs-fastcheck)'.format(**res))
 
 
 # Pymacs style:
@@ -66,7 +66,10 @@ def server(fd):
     # ">2\t.\n"  length = data plus newline
     cmdpat = re.compile('^>(\d+)\t(.+\n)')
 
-    send('(piemacs-status "fastcheck started")')
+    OVERLAY_FMT = ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
+                   ' :message "{msg}" :face \'piemacs-fastcheck)')
+
+    yield '(piemacs-status "fastcheck started")'
     logging.info('started')
     start_tm = None
     while 1:
@@ -75,11 +78,11 @@ def server(fd):
             break
         logging.debug('recv: %s', line.rstrip())
         if not line.startswith('>'):
-            logging.info('cmd?: %s',line.rstrip())
+            logging.warn('cmd?: %s',line.rstrip())
             continue
         m = cmdpat.match(line)
         if not m:
-            logging.info('detail?: %s',line.rstrip())
+            logging.warn('detail?: %s',line.rstrip())
             continue
         start_tm = time.time()
         total = int(m.group(1))
@@ -89,17 +92,27 @@ def server(fd):
             source.append( fd.read(remaining) )
 
         res = fastcheck(source=''.join(source), filename='<stdin>')
-        logging.info('%d chars in %.2f seconds', total, time.time()-start_tm)
+        if 0:
+            logging.info('%d chars in %.2f seconds', total, time.time()-start_tm)
         if not res:
             if VERBOSE:
-                send('(piemacs-status "fastcheck ok")')
+                yield '(piemacs-status "fastcheck ok")'
             continue
         # be careful highlighting after the code
         if len(res['src']) == res['errpos']:
             res['errpos'] -= 1
-        send('(piemacs-ov-pos :lineno {errline} :col {errpos}'
-             ' :message "{msg}" :face \'fastcheck-face)'.format(**res))
+        yield OVERLAY_FMT.format(**res)
 
+def source_fd(text):
+    return StringIO('>{0}\t{1}\n'.format(len(text)+1, text))
+
+def test_server():
+    source = 'x='
+    eq( list( server(source_fd('x=')) )[-1],
+        '(piemacs-ov-pos :lineno 1 :col 2 :message "invalid syntax" :face \'piemacs-fastcheck)'
+        )
+
+    
 if __name__=='__main__':
     if sys.argv[1:] == ['--server']:
         try:
