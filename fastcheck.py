@@ -46,53 +46,48 @@ def test_time():
     print int((4734*loops) / elapsed), 'lines per second'
 del test_time
 
-# def check():
-#     source = sys.stdin.read()
-#     res = fastcheck(source, filename='<stdin>')
-#     if res:
-#         print ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
-#                ' :message "{msg}" :face \'piemacs-fastcheck)'.format(**res))
-
-
-# Pymacs style:
-# def pm_send(data):
-#     logging.debug('send: %s', data)
-#     print '<%d\t%s' % (len(data)+1, data) # +1 for newline
 def send(data):
     # logging.debug('send: %s', data)
     print data
 
-def server(fd):
-    # http://pymacs.progiciels-bpi.ca/pymacs.html
-    # ">2\t.\n"  length = data plus newline
+def pymacs_iter(fd):
     cmdpat = re.compile('^>(\d+)\t(.*\n)')
 
-    OVERLAY_FMT = ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
-                   ' :message "{msg}" :face \'piemacs-fastcheck)')
-
-    yield '(piemacs-status "fastcheck started")'
-    logging.info('start')
-    start_tm = None
     while 1:
         line = fd.readline()    # line buffered
         if not line:
-            break
+            break 
         logging.debug('recv: "%s"', line.rstrip())
-        if not line.startswith('>'):
-            logging.warn('cmd?: %s',line.rstrip())
-            continue
         m = cmdpat.match(line)
         if not m:
-            logging.warn('detail?: %s',line.rstrip())
+            logging.warn('message?: %s',line.rstrip())
             continue
-        start_tm = time.time()
         total = int(m.group(1))
         source = [m.group(2)]
         remaining = total - len(source[0])
         if remaining:
             source.append( fd.read(remaining) )
+        yield ''.join(source)
 
-        res = fastcheck(source=''.join(source), filename='<stdin>')
+        # start_tm = time.time()
+
+def source_fd(text):
+    return StringIO('>{0}\t{1}\n'.format(len(text)+1, text))
+
+# def test_pymacs_iter():
+#     eq( list(pymacs_iter(source_fd('x=5\n'))), 'blam')
+
+def server(fd):
+    # http://pymacs.progiciels-bpi.ca/pymacs.html
+    # ">2\t.\n"  length = data plus newline
+    OVERLAY_FMT = ('(piemacs-ov-pos :lineno {errline} :col {errpos}'
+                   ' :message "{msg}" :face \'piemacs-fastcheck)')
+
+    yield '(piemacs-status "fastcheck started")'
+    logging.info('start')
+    # start_tm = None
+    for source in pymacs_iter(fd):
+        res = fastcheck(source, filename='<stdin>')
         if 0:
             logging.info('%d chars in %.2f seconds', total, time.time()-start_tm)
         if not res:
@@ -104,13 +99,14 @@ def server(fd):
             res['errpos'] -= 1
         yield OVERLAY_FMT.format(**res)
 
-def source_fd(text):
-    return StringIO('>{0}\t{1}\n'.format(len(text)+1, text))
-
 def test_server():
-    source = 'x='
     eq( list( server(source_fd('x=')) )[-1],
         '(piemacs-ov-pos :lineno 1 :col 2 :message "invalid syntax" :face \'piemacs-fastcheck)'
+        )
+def test_server2():
+    source = 'x=5'
+    eq( list( server(source_fd(source)) ),
+        ['(piemacs-status "fastcheck started")'],
         )
 
 # ::::::::::::::::::::::::::::::::::::::::::::::::::

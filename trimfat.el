@@ -2,21 +2,12 @@
 
 (require 'compile)
 
-(defcustom trimfat-flush-lines-regexp-list
-  (list
-   "File .+lib/python.+\n"
-   "File .+/deps/.+\n")
+(defcustom trimfat-setup-function nil
+  "Function adds highlight and flush patterns"
+  :group 'trimfat)
+(defcustom trimfat-flush-lines-regexp-list nil
   "Delete lines that match one of the regular expressions"
   :group 'trimfat)
-
-
-(dolist (pat (list "^+" "^\\(Installing\\|Creat\\|Failed\\|Destroying\\)"
-		   "^/.+/psql"
-		   "File .+/packages/restapi/.+\n"
-		   "File .+/tools/decorators.+\n"))		   
-  (add-to-list 'trimfat-flush-lines-regexp-list pat))
- 
-	     
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: FACES
@@ -44,9 +35,6 @@
   "Face"
   :group 'trimfat)
 
-;; (set-face-attribute 'trimfat-error nil :background "firebrick3")
-
-;; trimfat-highlight
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
@@ -68,12 +56,6 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   (dolist (pat patlist)
     (hi-lock-face-buffer pat face)))
 
-
-(defun trimfat-highlight-setup ()
-  (trimfat-hl-pats 'trimfat-okay (list "!="))
-  (trimfat-hl-pats 'trimfat-okay (list "\\(?: ... \\)ok$" "^OK$"))
-  (trimfat-hl-pats 'trimfat-error (list " ... \\(ERROR\\|FAIL\\)$")))
-  
 (defun trimfat-replace (regexp to-string)
   (goto-char (point-min))
   (while (re-search-forward regexp (point-max) t)
@@ -107,14 +89,30 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 	    (put-text-property (point) next-change 'invisible 'trimfat))
 	(goto-char next-change)))))
 
-(defun jmc-test ()
-  (save-excursion
-    (goto-char (point-min))
-    (trimfat-f-fixup-invisible)))
+;; (defun jmc-test ()
+;;   (save-excursion
+;;     (goto-char (point-min))
+;;     (trimfat-f-fixup-invisible)))
 
 
 (add-hook 'compilation-filter-hook 'trimfat-f-flush-lines)
 (add-hook 'compilation-filter-hook 'trimfat-f-fixup-invisible)
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGINS
+
+(defun trimfat-setup-unittest ()
+  (trimfat-hl-pats 'trimfat-okay (list "!="))
+  (trimfat-hl-pats 'trimfat-okay (list "\\(?: ... \\)ok$" "^OK$"))
+  (trimfat-hl-pats 'trimfat-error (list " ... \\(ERROR\\|FAIL\\)$"))
+
+  (dolist (pat (list "^+" "^\\(Installing\\|Creat\\|Failed\\|Destroying\\)"
+		     "^/.+/psql"
+		     "File .+/packages/restapi/.+\n"
+		     "File .+/tools/decorators.+\n"))		   
+    (add-to-list 'trimfat-flush-lines-regexp-list pat)))
+  
+(defun trimfat-setup-jabber ()
+  (trimfat-hl-pats 'trimfat-okay (list "stanza")))
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: MINOR MODE
 
@@ -130,7 +128,8 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
   (if t
       (progn
 	(add-to-invisibility-spec '(trimfat . t)) ;; ellipses
-	(trimfat-highlight-setup))
+	(when trimfat-setup-function
+	  (funcall trimfat-setup-function)))
     (progn
       (remove-from-invisibility-spec '(trimfat . t))
       (remove-from-invisibility-spec 'trimfat))))
@@ -141,4 +140,6 @@ Ex: 'ERROR: example.test_syntax' => 'test_syntax'
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HISTORICAL
 
-(trimfat-hl-pats 'trimfat-invisible (list "beer"))
+(when nil
+  (trimfat-hl-pats 'trimfat-invisible (list "beer")))
+

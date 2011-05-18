@@ -288,9 +288,11 @@ Ex: mod1/mod2/test/test_code.py => 'mod1.mod2.code'
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: PYTHON
 
 ;; X: local?
-(set-variable 'jmc-python-command python-python-command)
-(set-variable 'jmc-python-command 
-	      (format "%s/bin/python" project-dir))
+;; XXXXXX:
+(when nil
+  (set-variable 'jmc-python-command python-python-command)
+  (set-variable 'jmc-python-command 
+		(format "%s/bin/python" project-dir)))
 
 (defun jmc-py-run ()
   "Syntax check this Python source (run this file using 'python')"

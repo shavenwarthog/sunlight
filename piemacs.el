@@ -2,7 +2,7 @@
 
 (require 'cl)
 
-(defvar piemacs-load-path nil "load-path for plugins")
+(defvar piemacs-load-path nil "load-path for Piemacs plugins")
 ;; XX: add location of piemacs.el 
 
 ;; XX buffer local:
@@ -14,10 +14,17 @@
 (defvar piemacs-timer nil "timer")
 (defvar piemacs-timer-secs 0.1 "timer idle timout, in seconds")
 
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: FACES
+
+(defface piemacs-error
+  '((t :underline "red2"))
+  "error")
+
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: HELPERS
 
 (defun piemacs-idle-callback (last-modified-tick)
-  "Run check if modified since last-modified-tick.
+  "Run check if source buffer modified since last-modified-tick.
 Then, start another timer, with new modification time."
   (when (> (buffer-modified-tick piemacs-sourcebuf) last-modified-tick)
     (cancel-timer piemacs-timer)
@@ -45,15 +52,13 @@ Then, start another timer, with new modification time."
       (delete-file piemacs-workfile-path)
       (setq piemacs-workfile-path nil)))
 
-;; (defun piemacs-locate (name):
-;;   (locate-library name t piemacs-load-path))
-;; XXXX:
 (defun piemacs-locate (name):
-  (concat "/home/johnm/src/sunlight/" name))
+  (locate-library name t piemacs-load-path))
 
 (defun piemacs-status (msg)
   (message "piemacs: %s" msg))
 
+;; XX
 (defun piemacs-checkable ()
   (eq 'python-mode major-mode))
 
@@ -74,6 +79,7 @@ Then, start another timer, with new modification time."
 
 ;; XX: interface with simple.el:next-error-function
 
+(when nil
 (defun piemacs-next-error ()
   BLAM
   (interactive)
@@ -82,7 +88,7 @@ Then, start another timer, with new modification time."
 	(progn
 	  (goto-char nextov)
 	  (message "piemacs: %s" (flynote-current-message)))
-      (message "piemacs: end"))))
+      (message "piemacs: end")))))
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PROC START/STOP
@@ -107,15 +113,16 @@ Then, start another timer, with new modification time."
 (defun piemacs-start ()
   "Async: start proc server, each check sends buffer-contents, proc remains."
   (let* ((cmd (funcall piemacs-command-function))
-	 (bufname (format "*piemacs: %s*" (car cmd))))
-    (setq piemacs-proc 
-	  (apply 'start-process-shell-command "piemacs" bufname (car cmd) (cdr cmd)))
-    (with-current-buffer (process-buffer piemacs-proc)
-      (insert (format "command: %s\n\n" cmd))
-      (goto-char (process-mark piemacs-proc))))
-  (set-process-filter piemacs-proc 'piemacs-filter)
-  (set-process-sentinel piemacs-proc 'piemacs-sentinel)
-  (piemacs-restart-timer))
+	 (bufname (if cmd (format "*piemacs: %s*" (car cmd)))))
+    (piemacs-restart-timer)
+    (when cmd
+      (setq piemacs-proc 
+	    (apply 'start-process-shell-command "piemacs" bufname (car cmd) (cdr cmd)))
+      (with-current-buffer (process-buffer piemacs-proc)
+	(insert (format "command: %s\n\n" cmd))
+	(goto-char (process-mark piemacs-proc))))
+    (set-process-filter piemacs-proc 'piemacs-filter)
+    (set-process-sentinel piemacs-proc 'piemacs-sentinel)))
 
 (defun piemacs-stopped ()
   (or (null piemacs-proc) 
@@ -160,7 +167,7 @@ Then, start another timer, with new modification time."
 	(insert (concat (format-time-string "\n%H:%M:%S\n")
 			string))
 	(when func 
-	  (funcall func string)) ;; piemacs-parsebuf
+	  (funcall func string))
 	(set-marker (process-mark proc) (point)))
       (if moving (goto-char (process-mark proc))))))
 
@@ -168,11 +175,15 @@ Then, start another timer, with new modification time."
   (piemacs-log proc string 'piemacs-parsebuf))
 
 (defun piemacs-sentinel (proc string)
+  ;; (defun _log (fmt &rest args)
+  ;;   (piemacs-log proc (format "piemacs %s %s" "xx" (apply 'format fmt args))))
+  ;; (_log "beer"))
+    
   (piemacs-log proc (format "sentinel: %s\n" string))
   (when (eq (process-status proc) 'exit)
     (let ((status (process-exit-status proc)))
       (if (= 0 status)
-	  (piemacs-log proc (format "exit: okay\n" ))
+	  (piemacs-log proc (format "exit: okay\n"))
 	(piemacs-log proc (format "exit: status=%d\n" status))))
     (piemacs-delete-workfile)))
 
@@ -213,7 +224,7 @@ Then, start another timer, with new modification time."
 	     (lineno (piemacs-make-ov-lineno lineno))
 	     (linerange (piemacs-make-ov-linerange linerange))
 	     (t (error "Unknown region")))))
-    (overlay-put ov 'face (or face 'piemacs-pylint-error))
+    (overlay-put ov 'face (or face 'piemacs-error))
     (when message
       (overlay-put ov 'help-echo message))))
 
@@ -228,26 +239,46 @@ Then, start another timer, with new modification time."
     (goto-line lineno)
     (let* ((pos (1- (+ (point) col)))
 	   (ov (piemacs-make-overlay pos (1+ pos))))
-      (overlay-put ov 'face (or face 'piemacs-pylint-error))
+      (overlay-put ov 'face (or face 'piemacs-error))
       (when message
 	(overlay-put ov 'help-echo message)))))
 
+
+;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: PYLINT
+
+(copy-face 'piemacs-error 'piemacs-pylint-error)
+(defface piemacs-pylint-warning
+  '((t :underline "IndianRed"))
+  "pylint warning")
+
+(defvar piemacs-pylint-command "ppylint.py" "pylint command")
+
+(defun piemacs-pylint-command (source-path)
+  (let ((path (piemacs-locate piemacs-pylint-command)))
+    (if (file-exists-p path)
+	(list path source-path)
+      (error "piemacs: pylint command %s not found; check load-path" 
+	     piemacs-pylint-command))))
+
+(defun piemacs-set-pylint ()
+  (setq piemacs-command-function 'piemacs-pylint-command
+	piemacs-check-function 'piemacs-check-sync))
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: FASTCHECK
 ;; highlight Python syntax errors
 ;; (server)
 
-(defface fastcheck-face
+(defface piemacs-fastcheck
   '((t :background "firebrick4"))
   ".")
-;; (set-face-attribute 'fastcheck-face nil :background "firebrick4" :box nil)
 
-(defun fastcheck-command ()
+;; XXX
+(defun piemacs-fastcheck-command ()
   (list "python2.6" "./fastcheck.py" "--server"))
 
 (defun piemacs-set-fastcheck ()
-  (setq piemacs-command-function 'fastcheck-command
+  (setq piemacs-command-function 'piemacs-fastcheck-command
 	piemacs-check-function 'piemacs-check-with-server))
 
 
@@ -271,14 +302,6 @@ Then, start another timer, with new modification time."
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: NOSETESTS / COVERAGE
 
-;; (piemacs-nosetest "test_callname_shouldskip" 'piemacs-face-okay)
-;; (piemacs-nosetest "test_enum_pos" 'piemacs-face-okay)
-;; (piemacs-coverage-missing 20 20 32 32 42 42 45 59 62 72 75 112 116 127 131 143 146 146)
-(when nil
-  (mapc (apply-partially 'piemacs-ov :message "woo" :lineno)
-	(list 109)))
-  (mapc (apply-partially 'piemacs-ov :message "beer" :linerange)
-	(list (list 112 114)))
 
 (defface coverage-missing
   '((t :box "gray80")) ;;:foreground "gray80" :underline "gray"))
@@ -287,33 +310,6 @@ Then, start another timer, with new modification time."
 (defun nosetests-command (path)
   (concat (piemacs-locate "pnosetests.py") path))
 ;;	  (split-string "python2.6 ./pnosetests.py test_xref.py"))
-
-
-;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: PYLINT
-
-(defface piemacs-pylint-error
-  '((t :underline "red2"))
-  "pylint error")
-(defface piemacs-pylint-warning
-  '((t :underline "IndianRed"))
-  "pylint warning")
-
-(defvar piemacs-pylint-command "ppylint.py" "pylint path")
-
-(defun pylint-command (source-path)
-  (let ((cmd piemacs-pylint-command))
-    (if (file-exists-p cmd)
-	cmd
-      (error "piemacs: pylint command %s not found; check load-path" cmd))))
-;; (pylint-command nil)
-  ;; (let ((cmd (piemacs-locate name
-  ;;   (if cmd
-  ;; 	(list cmd source-path)
-  ;;     (error "piemacs: plugin file ppylint.py not found; check load-path" cmd))))
-
-(defun piemacs-set-pylint ()
-  (setq piemacs-command-function 'pylint-command
-	piemacs-check-function 'piemacs-check-sync))
 
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: PLUGIN: PIEMACS DEBUG
@@ -341,12 +337,12 @@ Then, start another timer, with new modification time."
 	  :face 'piemacs-pylint-error
 	  :message errmsg)
 	 (piemacs-status errmsg))))))
-      
-(defun
-(defun jmc-test () (piemacs-elisp-check))
 
-   ;; (piemacs-status (format "Unmatched bracket or quote"
-   ;; 			   (buffer-file-name) (line-number-at-pos)))))
+;; XXXX: wrong
+(defun piemacs-set-elisp ()
+  (setq piemacs-command-function '(lambda () nil)
+	piemacs-check-function 'piemacs-elisp-check))
+      
 
 ;; :::::::::::::::::::::::::::::::::::::::::::::::::: 	
 
