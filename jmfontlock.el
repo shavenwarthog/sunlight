@@ -19,7 +19,7 @@
 ;;    "Additional things to highlight in Compilation mode.
 ;; This gets tacked on the end of the generated expressions.")
 
-(insert (string (nth 3 compilation-mode-font-lock-keywords)))
+;; (insert (string (nth 3 compilation-mode-font-lock-keywords)))
 
 (when nil
   ("^Compilation \\(finished\\).*"
@@ -43,8 +43,10 @@
 ;; It makes “foo” a keyword in EmacsLisp mode.
 
 (when nil
-  (font-lock-add-keywords 'compilation-mode
-			  '(("beer" . font-lock-keyword-face))))
+  (font-lock-add-keywords 
+   'compilation-mode
+   '(("beer" . font-lock-keyword-face))	; blueish
+   ))
 
 ;; -error=pink bold
 ;; -warning = orange bold

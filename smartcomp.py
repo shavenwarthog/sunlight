@@ -9,7 +9,8 @@ import fileinput, re
 def main():
     verbose = False
 
-    notrace_path = re.compile('/usr/')
+    notrace_path = re.compile(
+        '/usr/')
     decor_pat = re.compile('----')
     fail_pat = re.compile('Failure instance:\s+(.+)]"$')
 
