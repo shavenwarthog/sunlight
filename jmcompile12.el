@@ -18,6 +18,17 @@ With prefix arg, always test module.
 (global-set-key (kbd "C-S-<return>") 'jmc-python-test-function)
 
 
+(defun jmc-insert-assertvalue ()
+  (interactive)
+  (let ((match (with-current-buffer "*compilation*"
+		 (if (re-search-forward "AssertionError: \\(.+\\) !=" nil t)
+		     (match-string 1)))))
+    (if match
+	(insert match)
+      (message "AsserionError not found in compilation buffer."))))
+
+(global-set-key (kbd "<f12>") 'jmc-insert-assertvalue)
+
 ;; (defun jmc-debug ()
 ;;   (interactive)
 ;;   (save-some-buffers t)
