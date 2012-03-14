@@ -33,6 +33,14 @@ With prefix arg, always test module.
     (recompile)))
 
 
+(defun jmc-make-this-makefile ()
+  (save-some-buffers t)
+  (let ((compile-command 
+	 (format
+	  "make -f %s"
+	  (buffer-name))))
+    (recompile)))
+  
 
 (defun jmc-executablep (path)
   (and (not (null path))
@@ -56,14 +64,17 @@ test_beer.py		whole test_beer.py module
 beer.py			tests/test_beer.py
 beer.py is +x		run ./beer.py
 *compilation*		recompile
+Makefile or *.mk	'make' this Makefile
 "
   (interactive)
   (cond ((jmc-testmodulep)
 	 (jmc-make-mytests (which-function)))
+	((not (null (get-buffer "*compilation*")))
+	 (recompile))
 	((jmc-executablep (buffer-file-name))
 	 (jmc-runbuffer))
-	((string= mode-name "Compilation")
-	 (recompile))
+	((eq major-mode 'makefile-gmake-mode)
+	 (jmc-make-this-makefile))
 	(t
 	 (jmc-make-mytests ""))))
 
@@ -86,4 +97,4 @@ beer.py is +x		run ./beer.py
 
 
 (global-set-key (kbd "<f12>") 'jmc-insert-assertvalue)
-(global-set-key (kbd "C-S-<return>") 'jmc-python-test-something)
+(global-set-key (kbd "C-S-<return>") 'jmc-retest)
