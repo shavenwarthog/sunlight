@@ -1,42 +1,49 @@
-;; allow relevant bits be more readable
+;; loghelper.el -- allow relevant bits be more readable
 
 (require 'hi-lock)
 
-(defface lh-dim '((t :foreground "gray20" :background nil)) "dark gray")
+(defface loghelper-dim '((t :foreground "gray20" :background nil)) "dark gray")
 
-(defface lh-invisible 
+(defface loghelper-invisible 
   '((t :foreground "green4" :invisible t)) "invisible text")
 
-(defface lh-yellow 
+(defface loghelper-yellow 
   '((t :foreground "yellow"  :weight bold)) "yellow face")
 
-(defvar lh-patterns 
+(defvar loghelper-patterns 
   "Patterns")
 
-(defvar lh-hi-lock nil "Use Loghelper colors or not")
-
-(defun lh-compile-hook ()
-  (interactive)
-  (when lh-hi-lock
-    (hi-lock-set-file-patterns 
-     '(
-       ;; dim boring paths
-       (".*/[Ee]nv/[Ll]ocal/[Ll]ib.*" (0 'lh-dim t))
-       (".*/usr/lib/python.*" (0 'lh-dim t))
-
-       ;; and startup stuff
-       (".*starting on.*" (0 'lh-dim t))
-       (".*reactor class.*" (0 'lh-dim t))
-       (".*Starting factory.*" (0 'lh-dim t))
-       (".*Log opened.*" (0 'lh-dim t))
-       (".*twistd .*" (0 'lh-dim t))
-       (".*new pool.*" (0 'lh-dim t))
-       (".*stale pidfile.*" (0 'lh-invisible t))
-       ))))
+(defvar loghelper-hi-lock nil "Use Loghelper colors or not")
 
 
 
-(defun lh-apply-pattern (pat)
+
+
+;; (defun loghelper-compile-hook ()
+;;   (interactive)
+;;   (when loghelper-hi-lock
+
+
+;; (defun loghelper-compile-hook ()
+;;   (interactive)
+;;   (when loghelper-hi-lock
+;;     (hi-lock-set-file-patterns 
+;;      '(
+;;        ;; dim boring paths
+;;        (".*/[Ee]nv/[Ll]ocal/[Ll]ib.*" (0 'loghelper-dim t))
+;;        (".*/usr/lib/python.*" (0 'loghelper-dim t))
+
+;;        ;; zap startup stuff
+;;        (".*starting on.*" (0 'loghelper-dim t))
+;;        (".*reactor class.*" (0 'loghelper-dim t))
+;;        (".*Starting factory.*" (0 'loghelper-dim t))
+;;        (".*Log opened.*" (0 'loghelper-dim t))
+;;        (".*twistd .*" (0 'loghelper-dim t))
+;;        (".*new pool.*" (0 'loghelper-dim t))
+;;        (".*stale pidfile.*" (0 'loghelper-invisible t))
+;;        ))))
+
+(defun loghelper-apply-pattern (pat)
   (let* ((regex (car pat))
 	 (pat-face (nth 1 pat)))
     (save-excursion
@@ -45,40 +52,28 @@
 	(let ((overlay (make-overlay (match-beginning 0) (match-end 0))))
 	  (overlay-put overlay 'loghelper-overlay t)
 	  (overlay-put overlay 'face pat-face)
-	  (if (eq pat-face 'lh-invisible)
+	  (if (eq pat-face 'loghelper-invisible)
 	      (overlay-put overlay 'invisible 'loghelper))
 	  (goto-char (match-end 0)))))))
 
-;; (lh-apply-pattern '("zoot" lh-invisible))
-;; (lh-unapply)
-
-(setq lh-patterns
-      '(("/[Ee]nv/[Ll]ocal/[Ll]ib.*" 'lh-invisible)
-	(".*/usr/lib/python.*" 'lh-invisible)
-
-       ;; and startup stuff
-       (".*starting on.*" 'lh-invisible)
-       (".*reactor class.*" 'lh-invisible)
-       (".*Starting factory.*" 'lh-invisible)
-       (".*Log opened.*" 'lh-invisible)
-       (".*twistd .*" 'lh-invisible)
-       (".*new pool.*" 'lh-invisible)
-       (".*stale pidfile.*" 'lh-invisible)))
-
-(defun lh-unapply ()
+(defun loghelper-unapply ()
   (interactive)
   (remove-overlays nil nil 'loghelper-overlay t))
 
-(defun lh-apply ()
+(defun loghelper-apply ()
   (interactive)
-  (mapcar 'lh-apply-regex lh-patterns)) 
+  (mapcar 'loghelper-apply-pattern loghelper-patterns))
   
-(defun lh-init ()
+(defun loghelper-init ()
   (interactive)
   (global-hi-lock-mode 1)
-  (setq lh-hi-lock t)
-  (add-hook 'compilation-mode-hook 'lh-compile-hook)
+  (setq loghelper-hi-lock t)
+  (add-hook 'compilation-mode-hook 'loghelper-compile-hook)
   (add-to-invisibility-spec '(loghelper . t))) ;; to display an ellipsis
 
+(loghelper-init)
+;; (loghelper-apply-pattern '("starting" loghelper-dim))
+;; (loghelper-apply)
+;; (loghelper-unapply)
 
-
+(provide 'loghelper)
